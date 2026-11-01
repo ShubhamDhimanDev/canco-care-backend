@@ -6,6 +6,7 @@ use App\Enums\StoryStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoryRequest;
 use App\Models\Story;
+use App\Models\Tag;
 use App\Services\StoryImageService;
 use App\Services\StoryWriter;
 use Illuminate\Database\Eloquent\Builder;
@@ -60,7 +61,10 @@ class StoryController extends Controller
     {
         Gate::authorize('create', Story::class);
 
-        return Inertia::render('stories/create');
+        return Inertia::render('stories/create', [
+            'allTags' => $this->tagNames(),
+            'siteUrl' => rtrim((string) config('services.frontend.url'), '/'),
+        ]);
     }
 
     public function store(StoryRequest $request, StoryWriter $writer): RedirectResponse
@@ -79,6 +83,7 @@ class StoryController extends Controller
         Gate::authorize('update', $story);
 
         $siteUrl = rtrim((string) config('services.frontend.url'), '/');
+        $story->load('tags');
 
         return Inertia::render('stories/edit', [
             'story' => [
@@ -86,6 +91,11 @@ class StoryController extends Controller
                 'title' => $story->title,
                 'slug' => $story->slug,
                 'excerpt' => $story->excerpt,
+                'summary' => $story->summary,
+                'faq' => $story->faq ?? [],
+                'tags' => $story->tags->pluck('name')->all(),
+                'is_featured' => $story->is_featured,
+                'noindex' => $story->noindex,
                 'body' => $story->body,
                 'image' => $story->featuredImage(),
                 'status' => $story->status->value,
@@ -97,6 +107,8 @@ class StoryController extends Controller
                 'updated_at' => $story->updated_at?->toIso8601String(),
                 'public_url' => $siteUrl === '' ? null : "{$siteUrl}/stories/{$story->slug}",
             ],
+            'allTags' => $this->tagNames(),
+            'siteUrl' => $siteUrl,
         ]);
     }
 
@@ -155,6 +167,16 @@ class StoryController extends Controller
     }
 
     /**
+     * Every tag name, for the tag field's suggestions.
+     *
+     * @return list<string>
+     */
+    private function tagNames(): array
+    {
+        return array_values(Tag::query()->orderBy('name')->get(['name'])->map(fn (Tag $tag): string => $tag->name)->all());
+    }
+
+    /**
      * @param  Builder<Story>  $query
      * @return Builder<Story>
      */
@@ -187,6 +209,7 @@ class StoryController extends Controller
             'published_at' => $story->published_at?->toIso8601String(),
             'updated_at' => $story->updated_at?->toIso8601String(),
             'image_url' => $story->featuredImage()['url'] ?? null,
+            'is_featured' => $story->is_featured,
         ];
     }
 }

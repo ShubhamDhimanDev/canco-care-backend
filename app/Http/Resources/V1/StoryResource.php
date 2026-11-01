@@ -24,6 +24,9 @@ class StoryResource extends StoryCardResource
         return [
             ...parent::toArray($request),
             'body' => $story->body,
+            'summary' => $story->summary,
+            'faq' => $story->faq ?? [],
+            'reading_minutes' => $story->readingMinutes(),
             'author_name' => $story->author_name,
             'meta_title' => $story->meta_title,
             'meta_description' => $story->meta_description,

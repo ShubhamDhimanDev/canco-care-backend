@@ -1,8 +1,9 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Star } from 'lucide-react';
 import StoryController from '@/actions/App/Http/Controllers/Admin/StoryController';
 import Heading from '@/components/heading';
 import StoryStateBadge from '@/components/stories/story-state-badge';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -235,6 +236,14 @@ export default function StoriesIndex({ stories, filters, counts, can }: Props) {
                                             <div className="truncate text-xs text-muted-foreground">
                                                 /{story.slug}
                                             </div>
+                                            {story.is_featured && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="mt-1"
+                                                >
+                                                    <Star /> On the home page
+                                                </Badge>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <StoryStateBadge

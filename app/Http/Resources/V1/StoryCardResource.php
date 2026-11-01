@@ -26,6 +26,8 @@ class StoryCardResource extends JsonResource
             'title' => $story->title,
             'excerpt' => $story->excerpt ?? Excerpt::from($story->body),
             'image' => $story->featuredImage(),
+            'tags' => $story->tags->map(fn ($tag): array => ['slug' => $tag->slug, 'name' => $tag->name])->values()->all(),
+            'noindex' => $story->noindex,
             'published_at' => $story->published_at?->toIso8601String(),
         ];
     }

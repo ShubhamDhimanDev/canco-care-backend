@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Inquiry;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'isAdmin' => (bool) $request->user()?->isAdmin(),
+            // Shown as a badge on "Inquiries"; evaluated lazily so guests and partial reloads skip the query.
+            'unreadInquiries' => fn (): int => $request->user() ? Inquiry::query()->where('status', 'new')->count() : 0,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

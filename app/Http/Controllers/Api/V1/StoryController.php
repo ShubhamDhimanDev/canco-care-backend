@@ -26,8 +26,14 @@ class StoryController extends Controller
         $requested = filter_var($request->query('per_page'), FILTER_VALIDATE_INT);
         $perPage = $requested === false ? self::DEFAULT_PER_PAGE : min(max($requested, 1), self::MAX_PER_PAGE);
 
+        $tag = $request->query('tag');
+
         return StoryCardResource::collection(
             Story::published()
+                ->with('tags')
+                ->when(is_string($tag) && $tag !== '', fn ($query) => $query->whereHas('tags', fn ($q) => $q->where('slug', $tag)))
+                // The home page's "Latest Stories": stories marked "feature on the home page" first.
+                ->when($request->boolean('featured_first'), fn ($query) => $query->orderByDesc('is_featured'))
                 ->orderByDesc('published_at')
                 ->orderByDesc('id')
                 ->paginate($perPage)
@@ -41,7 +47,7 @@ class StoryController extends Controller
      */
     public function show(string $slug): StoryResource|JsonResponse
     {
-        $story = Story::published()->where('slug', $slug)->first();
+        $story = Story::published()->with('tags')->where('slug', $slug)->first();
 
         if ($story !== null) {
             return new StoryResource($story);

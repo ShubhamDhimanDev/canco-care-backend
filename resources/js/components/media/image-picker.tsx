@@ -1,10 +1,11 @@
 import { ImagePlus, Trash2 } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import MediaPicker from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useInputNotifier } from '@/hooks/use-form-dirty';
 import type { AttachedImage, MediaItem } from '@/types';
 
 type Props = {
@@ -20,6 +21,10 @@ type Props = {
     altError?: string;
     /** Called whenever an image becomes set or cleared (for live checklists). */
     onPresenceChange?: (present: boolean) => void;
+    /** Called with the address of the image now shown, or null (for live previews). */
+    onImageChange?: (url: string | null) => void;
+    /** Shape of the preview frame; defaults to the image's own proportions. */
+    previewClassName?: string;
 };
 
 /**
@@ -36,6 +41,8 @@ export default function ImagePicker({
     error,
     altError,
     onPresenceChange,
+    onImageChange,
+    previewClassName,
 }: Props) {
     const altId = useId();
     const [open, setOpen] = useState(false);
@@ -43,18 +50,33 @@ export default function ImagePicker({
     const [removed, setRemoved] = useState(false);
 
     const shown = chosen
-        ? { url: chosen.thumb_url, width: chosen.width }
+        ? { url: chosen.thumb_url, full: chosen.url, width: chosen.width }
         : removed
           ? null
           : current
-            ? { url: current.url, width: current.width }
+            ? { url: current.url, full: current.url, width: current.width }
             : null;
 
     const present = shown !== null;
+    const shownUrl = shown?.full ?? null;
+    const mediaIdRef = useInputNotifier(chosen ? String(chosen.id) : '');
+    const removeRef = useInputNotifier(removed && !chosen ? '1' : '0');
+
+    // Callers often pass inline functions; keep the latest in a ref so the effects below only run
+    // when the image itself changes (otherwise a caller that sets state would loop).
+    const callbacks = useRef({ onPresenceChange, onImageChange });
 
     useEffect(() => {
-        onPresenceChange?.(present);
-    }, [present, onPresenceChange]);
+        callbacks.current = { onPresenceChange, onImageChange };
+    });
+
+    useEffect(() => {
+        callbacks.current.onPresenceChange?.(present);
+    }, [present]);
+
+    useEffect(() => {
+        callbacks.current.onImageChange?.(shownUrl);
+    }, [shownUrl]);
 
     const tooSmall =
         minWidth !== undefined &&
@@ -64,12 +86,14 @@ export default function ImagePicker({
     return (
         <div className="space-y-3">
             <input
+                ref={mediaIdRef}
                 type="hidden"
                 name={fields.mediaId}
                 value={chosen ? chosen.id : ''}
             />
             {fields.remove && (
                 <input
+                    ref={removeRef}
                     type="hidden"
                     name={fields.remove}
                     value={removed && !chosen ? '1' : '0'}
@@ -79,15 +103,34 @@ export default function ImagePicker({
             <Label>{label}</Label>
 
             {shown ? (
-                <img
-                    src={shown.url}
-                    alt=""
-                    className="max-h-48 w-full rounded-md border bg-muted object-contain"
-                />
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    aria-label={`${label}: change image`}
+                    className="group relative block w-full overflow-hidden rounded-lg border bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                    <img
+                        src={shown.url}
+                        alt=""
+                        className={
+                            previewClassName ?? 'max-h-52 w-full object-contain'
+                        }
+                    />
+                    <span className="absolute inset-0 grid place-items-center bg-black/45 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                        Change image
+                    </span>
+                </button>
             ) : (
-                <div className="grid h-28 place-items-center rounded-md border border-dashed text-sm text-muted-foreground">
-                    No image
-                </div>
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="grid h-32 w-full place-items-center rounded-lg border-2 border-dashed text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                >
+                    <span className="grid justify-items-center gap-1">
+                        <ImagePlus className="size-6" />
+                        Choose or upload an image
+                    </span>
+                </button>
             )}
 
             {tooSmall && (

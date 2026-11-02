@@ -77,7 +77,7 @@ function EditDialog({ item }: { item: MediaItem }) {
                                     other description is typed.
                                 </p>
                                 {errors.alt && (
-                                    <p className="text-sm text-destructive">
+                                    <p className="text-sm text-destructive-foreground">
                                         {errors.alt}
                                     </p>
                                 )}
@@ -104,7 +104,11 @@ function DeleteDialog({ item }: { item: MediaItem }) {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-destructive">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive-foreground"
+                >
                     Delete
                 </Button>
             </DialogTrigger>
@@ -199,7 +203,7 @@ export default function MediaIndex({
                 {!canConvert && (
                     <p
                         role="alert"
-                        className="rounded-md border border-destructive/40 p-3 text-sm text-destructive"
+                        className="rounded-md border border-destructive-foreground/40 p-3 text-sm text-destructive-foreground"
                     >
                         This server's PHP cannot write WebP files (GD with WebP
                         support is missing), so uploads are blocked until that

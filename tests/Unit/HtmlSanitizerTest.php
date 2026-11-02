@@ -3,7 +3,7 @@
 use App\Services\HtmlSanitizer;
 
 beforeEach(function () {
-    $this->sanitizer = new HtmlSanitizer;
+    $this->sanitizer = new HtmlSanitizer(allowInsecureMedia: false);
 });
 
 test('it keeps ordinary editorial markup', function () {
@@ -55,4 +55,21 @@ test('legacy story markup survives with entities intact', function () {
     expect($this->sanitizer->sanitize($legacy))
         ->toContain('<br />')
         ->toContain('Kukpi7 &amp; Tkwamipla7');
+});
+
+test('library images keep src, alt and size but lose every other attribute', function () {
+    $clean = $this->sanitizer->sanitize('<img src="https://cdn.example/a.webp" alt="Volunteers" width="800" height="600" class="x" style="y" onload="z">');
+
+    expect($clean)->toContain('src="https://cdn.example/a.webp"')
+        ->and($clean)->toContain('alt="Volunteers"')
+        ->and($clean)->toContain('width="800"')
+        ->and($clean)->not->toContain('class')
+        ->and($clean)->not->toContain('onload');
+});
+
+test('a dev server without TLS may opt in to plain-http library images', function () {
+    $html = '<img src="http://localhost:8000/storage/a.webp" alt="A">';
+
+    expect((new HtmlSanitizer(allowInsecureMedia: true))->sanitize($html))->toContain('src="http://localhost:8000/storage/a.webp"')
+        ->and($this->sanitizer->sanitize($html))->not->toContain('http://localhost');
 });

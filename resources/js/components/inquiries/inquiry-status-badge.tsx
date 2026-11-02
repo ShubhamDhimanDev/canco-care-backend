@@ -23,7 +23,8 @@ const STATUSES: Record<InquiryStatus, { label: string; className: string }> = {
     },
     spam: {
         label: 'Spam',
-        className: 'border-destructive/40 text-destructive',
+        className:
+            'border-destructive-foreground/40 text-destructive-foreground',
     },
 };
 

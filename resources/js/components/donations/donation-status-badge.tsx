@@ -14,7 +14,8 @@ const STATUSES: Record<DonationStatus, { label: string; className: string }> = {
     },
     failed: {
         label: 'Failed',
-        className: 'border-destructive/40 text-destructive',
+        className:
+            'border-destructive-foreground/40 text-destructive-foreground',
     },
     canceled: {
         label: 'Canceled',

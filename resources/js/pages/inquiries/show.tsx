@@ -287,7 +287,7 @@ export default function InquiryShow({ inquiry, statuses, staff }: Props) {
                             <DialogTrigger asChild>
                                 <Button
                                     variant="ghost"
-                                    className="mt-4 w-full text-destructive"
+                                    className="mt-4 w-full text-destructive-foreground"
                                 >
                                     Delete this inquiry
                                 </Button>

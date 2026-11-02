@@ -30,11 +30,13 @@ export function PreviewFrame({
     label: string;
     children: (mobile: boolean) => ReactNode;
 }) {
-    const [mobile, setMobile] = useState(false);
-    const width = mobile ? MOBILE_WIDTH : DESKTOP_WIDTH;
+    // null = automatic: a narrow screen starts on the phone view, where the text is readable.
+    const [choice, setChoice] = useState<boolean | null>(null);
     const outer = useRef<HTMLDivElement>(null);
     const inner = useRef<HTMLDivElement>(null);
     const [box, setBox] = useState({ available: 0, content: 0 });
+    const mobile = choice ?? (box.available > 0 && box.available < 640);
+    const width = mobile ? MOBILE_WIDTH : DESKTOP_WIDTH;
 
     useLayoutEffect(() => {
         const measure = () =>
@@ -56,7 +58,7 @@ export function PreviewFrame({
         }
 
         return () => observer.disconnect();
-    }, [width]);
+    }, []);
 
     const scale = box.available > 0 ? Math.min(1, box.available / width) : 1;
     const offset = Math.max(0, (box.available - width * scale) / 2);
@@ -80,7 +82,7 @@ export function PreviewFrame({
                             key={text}
                             type="button"
                             aria-pressed={mobile === value}
-                            onClick={() => setMobile(value)}
+                            onClick={() => setChoice(value)}
                             className={cn(
                                 'inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors',
                                 mobile === value

@@ -53,9 +53,9 @@ function Split({
     preview: React.ReactNode;
 }) {
     return (
-        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-            <div className="space-y-4">{fields}</div>
-            <div className="xl:sticky xl:top-24">{preview}</div>
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+            <div className="min-w-0 space-y-4">{fields}</div>
+            <div className="min-w-0 xl:sticky xl:top-24">{preview}</div>
         </div>
     );
 }
@@ -104,7 +104,7 @@ export default function HomePageEdit({ content, defaults, siteUrl }: Props) {
         <>
             <Head title="Home page" />
 
-            <div className="mx-auto w-full max-w-6xl space-y-6 p-4">
+            <div className="mx-auto w-full max-w-6xl min-w-0 space-y-6 p-4">
                 <Form
                     {...HomePageController.update.form()}
                     options={{ preserveScroll: true }}

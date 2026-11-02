@@ -13,4 +13,6 @@ export type NavItem = {
     isActive?: boolean;
     /** Highlight this item for every page under its address (e.g. /stories/12/edit), not only the exact one. */
     matchPrefix?: boolean;
+    /** A count shown next to the title (for example unread inquiries); hidden when 0. */
+    badge?: number;
 };

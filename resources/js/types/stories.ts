@@ -16,7 +16,10 @@ export type StoryRow = {
     published_at: string | null;
     updated_at: string | null;
     image_url: string | null;
+    is_featured: boolean;
 };
+
+export type FaqItem = { question: string; answer: string };
 
 /** A story as the edit form needs it. */
 export type StoryFormData = {
@@ -24,6 +27,11 @@ export type StoryFormData = {
     title: string;
     slug: string;
     excerpt: string | null;
+    summary: string | null;
+    faq: FaqItem[];
+    tags: string[];
+    is_featured: boolean;
+    noindex: boolean;
     body: string;
     image: StoryImage | null;
     status: 'draft' | 'published';

@@ -3,7 +3,13 @@ import StoryController from '@/actions/App/Http/Controllers/Admin/StoryControlle
 import Heading from '@/components/heading';
 import StoryForm from '@/components/stories/story-form';
 
-export default function CreateStory() {
+export default function CreateStory({
+    allTags,
+    siteUrl,
+}: {
+    allTags: string[];
+    siteUrl: string;
+}) {
     return (
         <>
             <Head title="New story" />
@@ -16,6 +22,8 @@ export default function CreateStory() {
                 <StoryForm
                     form={StoryController.store.form()}
                     submitLabel="Create story"
+                    allTags={allTags}
+                    siteUrl={siteUrl}
                 />
             </div>
         </>

@@ -15,7 +15,15 @@ import {
 import { formatDateTime } from '@/lib/date';
 import type { StoryFormData } from '@/types';
 
-export default function EditStory({ story }: { story: StoryFormData }) {
+export default function EditStory({
+    story,
+    allTags,
+    siteUrl,
+}: {
+    story: StoryFormData;
+    allTags: string[];
+    siteUrl: string;
+}) {
     return (
         <>
             <Head title={`Edit: ${story.title}`} />
@@ -37,6 +45,8 @@ export default function EditStory({ story }: { story: StoryFormData }) {
                     form={StoryController.update.form(story.id)}
                     story={story}
                     submitLabel="Save changes"
+                    allTags={allTags}
+                    siteUrl={siteUrl}
                 />
 
                 <div className="rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">

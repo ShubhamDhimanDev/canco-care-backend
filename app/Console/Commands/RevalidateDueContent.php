@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\RevalidateFrontend;
+use App\Models\Event;
 use App\Models\Story;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -21,22 +22,25 @@ class RevalidateDueContent extends Command
     {
         $minutes = max(1, (int) $this->option('minutes'));
 
-        $slugs = Story::published()
-            ->where('published_at', '>', now()->subMinutes($minutes))
-            ->pluck('slug');
+        $since = now()->subMinutes($minutes);
+        $stories = Story::published()->where('published_at', '>', $since)->pluck('slug');
+        $events = Event::visible()->where('published_at', '>', $since)->pluck('slug');
 
-        if ($slugs->isEmpty()) {
+        if ($stories->isEmpty() && $events->isEmpty()) {
             return self::SUCCESS;
         }
 
-        $tags = ['stories'];
-        foreach ($slugs as $slug) {
-            $tags[] = "story:{$slug}";
-        }
+        // The list tag first, then each item's own tag.
+        $tags = array_merge(
+            $stories->isEmpty() ? [] : ['stories'],
+            array_values(array_map(fn (string $slug): string => "story:{$slug}", $stories->all())),
+            $events->isEmpty() ? [] : ['events'],
+            array_values(array_map(fn (string $slug): string => "event:{$slug}", $events->all())),
+        );
 
         RevalidateFrontend::dispatch($tags);
 
-        $this->components->info("Revalidating {$slugs->count()} story(ies) that just went live.");
+        $this->components->info("Revalidating {$stories->count()} story(ies) and {$events->count()} event(s) that just went live.");
 
         return self::SUCCESS;
     }

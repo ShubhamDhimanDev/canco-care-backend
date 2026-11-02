@@ -24,6 +24,15 @@ return [
         'revalidate_secret' => env('REVALIDATE_SECRET'),
     ],
 
+    'donations' => [
+        // "fake" (development and staging only), or later "global_payments". Empty = donations closed.
+        'gateway' => env('DONATIONS_GATEWAY'),
+    ],
+
+    'turnstile' => [
+        'secret' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

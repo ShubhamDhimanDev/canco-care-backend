@@ -1,6 +1,7 @@
 <?php
 
 use App\Jobs\RevalidateFrontend;
+use App\Models\Media;
 use App\Models\SlugRedirect;
 use App\Models\Story;
 use App\Models\User;
@@ -275,10 +276,13 @@ describe('featured image', function () {
 
         Storage::disk('public')->assertExists((string) $story->featured_image_path);
 
+        // Uploads go through the media library: converted to WebP and registered there.
         expect($story->featured_image_width)->toBe(1200)
             ->and($story->featured_image_height)->toBe(800)
             ->and($story->featured_image_alt)->toBe('Volunteers at the fundraiser')
-            ->and($story->featuredImage()['url'])->toContain('/storage/stories/');
+            ->and($story->featured_image_path)->toEndWith('.webp')
+            ->and($story->featuredImage()['url'])->toContain('/storage/media/')
+            ->and(Media::where('path', $story->featured_image_path)->exists())->toBeTrue();
     });
 
     test('needs alt text', function () {
@@ -303,7 +307,7 @@ describe('featured image', function () {
         'svg' => [fn () => UploadedFile::fake()->create('a.svg', 10, 'image/svg+xml')],
     ]);
 
-    test('replacing the image deletes the old file', function () {
+    test('replacing the image keeps the old file in the media library', function () {
         $user = editor();
         $this->actingAs($user)->post(route('stories.store'), storyInput([
             'featured_image' => UploadedFile::fake()->image('one.jpg', 1200, 800),
@@ -319,10 +323,51 @@ describe('featured image', function () {
 
         $story->refresh();
 
-        Storage::disk('public')->assertMissing($oldPath);
+        // The library owns the files, so the first image is still there to be reused.
+        Storage::disk('public')->assertExists($oldPath);
         Storage::disk('public')->assertExists((string) $story->featured_image_path);
 
         expect($story->featured_image_path)->not->toBe($oldPath)->and($story->featured_image_alt)->toBe('Two');
+    });
+
+    test('replacing a legacy image (not in the library) deletes the old file', function () {
+        Storage::disk('public')->put('stories/legacy.jpg', 'x');
+        $story = Story::factory()->create(['featured_image_path' => 'stories/legacy.jpg', 'featured_image_alt' => 'Old']);
+
+        $this->actingAs(editor())->put(route('stories.update', $story), storyInput([
+            'featured_image' => UploadedFile::fake()->image('new.jpg', 1200, 800),
+            'featured_image_alt' => 'New',
+        ]))->assertRedirect();
+
+        Storage::disk('public')->assertMissing('stories/legacy.jpg');
+    });
+
+    test('can be chosen from the media library', function () {
+        $media = Media::create([
+            'path' => 'media/2026/11/team.webp', 'thumb_path' => 'media/2026/11/team-thumb.webp', 'original_name' => 'team.jpg',
+            'mime' => 'image/webp', 'size_bytes' => 100, 'width' => 1600, 'height' => 900,
+        ]);
+
+        $this->actingAs(editor())->post(route('stories.store'), storyInput([
+            'featured_media_id' => $media->id,
+            'featured_image_alt' => 'The team',
+        ]))->assertSessionHasNoErrors();
+
+        $story = Story::firstOrFail();
+
+        expect($story->featured_image_path)->toBe('media/2026/11/team.webp')
+            ->and($story->featured_image_width)->toBe(1600)
+            ->and($story->featured_image_alt)->toBe('The team');
+    });
+
+    test('a library image still needs alt text', function () {
+        $media = Media::create([
+            'path' => 'media/a.webp', 'thumb_path' => null, 'original_name' => 'a.jpg',
+            'mime' => 'image/webp', 'size_bytes' => 100, 'width' => 1600, 'height' => 900,
+        ]);
+
+        $this->actingAs(editor())->post(route('stories.store'), storyInput(['featured_media_id' => $media->id]))
+            ->assertSessionHasErrors('featured_image_alt');
     });
 
     test('can be removed', function () {
@@ -338,7 +383,8 @@ describe('featured image', function () {
 
         $story->refresh();
 
-        Storage::disk('public')->assertMissing($path);
+        // Removing it from the story leaves the file in the library.
+        Storage::disk('public')->assertExists($path);
 
         expect($story->featured_image_path)->toBeNull()
             ->and($story->featured_image_alt)->toBeNull()

@@ -4,9 +4,9 @@ use App\Models\SlugRedirect;
 use App\Models\Story;
 use Illuminate\Support\Facades\Storage;
 
-const CARD_KEYS = ['slug', 'title', 'excerpt', 'image', 'published_at'];
+const CARD_KEYS = ['slug', 'title', 'excerpt', 'image', 'tags', 'noindex', 'published_at'];
 
-const STORY_KEYS = [...CARD_KEYS, 'body', 'author_name', 'meta_title', 'meta_description', 'updated_at', 'prev', 'next'];
+const STORY_KEYS = [...CARD_KEYS, 'body', 'summary', 'faq', 'reading_minutes', 'author_name', 'meta_title', 'meta_description', 'updated_at', 'prev', 'next'];
 
 function publishedAt(string $iso): array
 {

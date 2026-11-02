@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\StoryStatus;
+use App\Models\Media;
 use App\Models\Story;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -19,6 +20,7 @@ class StoryWriter
         private readonly HtmlSanitizer $sanitizer,
         private readonly SlugService $slugs,
         private readonly StoryImageService $images,
+        private readonly TagService $tags,
     ) {}
 
     /**
@@ -64,16 +66,25 @@ class StoryWriter
             'title' => $data['title'],
             'slug' => $slug,
             'excerpt' => $data['excerpt'] ?? null,
+            'summary' => filled($data['summary'] ?? null) ? $data['summary'] : null,
+            'faq' => $this->faq($data['faq'] ?? null),
             'body' => $this->sanitizer->sanitize((string) $data['body']),
             'status' => $status,
             'published_at' => blank($publishedAt) ? null : $publishedAt,
             'meta_title' => $data['meta_title'] ?? null,
             'meta_description' => $data['meta_description'] ?? null,
+            'noindex' => (bool) ($data['noindex'] ?? false),
             'author_name' => $data['author_name'] ?? null,
+            'is_featured' => (bool) ($data['is_featured'] ?? false),
             'updated_by' => $user->id,
         ]);
 
-        $newImage = $image === null ? null : $this->images->store($image);
+        $newImage = null;
+        if ($image !== null) {
+            $newImage = $this->images->store($image, $user);
+        } elseif (filled($data['featured_media_id'] ?? null)) {
+            $newImage = $this->images->fromMedia(Media::findOrFail((int) $data['featured_media_id']));
+        }
 
         if ($newImage !== null) {
             $story->fill([
@@ -94,8 +105,9 @@ class StoryWriter
             $story->featured_image_alt = $data['featured_image_alt'] ?? $story->featured_image_alt;
         }
 
-        DB::transaction(function () use ($story, $oldSlug): void {
+        DB::transaction(function () use ($story, $oldSlug, $data): void {
             $story->save();
+            $this->tags->sync($story, (array) ($data['tags'] ?? []));
 
             // A story that has had (or was given) a publish date has a public address worth keeping.
             if ($oldSlug !== null && $oldSlug !== $story->slug && $story->published_at !== null) {
@@ -108,5 +120,26 @@ class StoryWriter
         }
 
         return $story;
+    }
+
+    /**
+     * Keeps only complete question/answer pairs, trimmed, in the order given.
+     *
+     * @return list<array{question: string, answer: string}>|null
+     */
+    private function faq(mixed $rows): ?array
+    {
+        $clean = [];
+
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $question = trim((string) ($row['question'] ?? ''));
+            $answer = trim((string) ($row['answer'] ?? ''));
+
+            if ($question !== '' && $answer !== '') {
+                $clean[] = ['question' => $question, 'answer' => $answer];
+            }
+        }
+
+        return $clean === [] ? null : $clean;
     }
 }

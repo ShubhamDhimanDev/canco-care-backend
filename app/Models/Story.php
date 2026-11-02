@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\Storage;
  * @property string $title
  * @property string $slug
  * @property string|null $excerpt
+ * @property string|null $summary
+ * @property list<array{question: string, answer: string}>|null $faq
  * @property string $body
  * @property string|null $featured_image_path
  * @property string|null $featured_image_alt
@@ -31,7 +34,9 @@ use Illuminate\Support\Facades\Storage;
  * @property Carbon|null $published_at
  * @property string|null $meta_title
  * @property string|null $meta_description
+ * @property bool $noindex
  * @property string|null $author_name
+ * @property bool $is_featured
  * @property int|null $created_by
  * @property int|null $updated_by
  * @property Carbon|null $created_at
@@ -43,6 +48,8 @@ use Illuminate\Support\Facades\Storage;
     'title',
     'slug',
     'excerpt',
+    'summary',
+    'faq',
     'body',
     'featured_image_path',
     'featured_image_alt',
@@ -52,7 +59,9 @@ use Illuminate\Support\Facades\Storage;
     'published_at',
     'meta_title',
     'meta_description',
+    'noindex',
     'author_name',
+    'is_featured',
     'created_by',
     'updated_by',
 ])]
@@ -73,6 +82,9 @@ class Story extends Model
             'legacy_id' => 'integer',
             'status' => StoryStatus::class,
             'published_at' => 'datetime',
+            'faq' => 'array',
+            'noindex' => 'boolean',
+            'is_featured' => 'boolean',
         ];
     }
 
@@ -87,6 +99,24 @@ class Story extends Model
             $this->published_at->isFuture() => 'scheduled',
             default => 'published',
         };
+    }
+
+    /**
+     * @return BelongsToMany<Tag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)->orderBy('name');
+    }
+
+    /**
+     * Whole minutes to read the body at ~200 words a minute (never less than 1).
+     */
+    public function readingMinutes(): int
+    {
+        $words = str_word_count(strip_tags(html_entity_decode($this->body)));
+
+        return max(1, (int) ceil($words / 200));
     }
 
     /**

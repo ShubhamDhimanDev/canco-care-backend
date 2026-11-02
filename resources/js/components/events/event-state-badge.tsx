@@ -27,7 +27,8 @@ const STATES: Record<EventState, { label: string; className: string }> = {
     },
     trashed: {
         label: 'In trash',
-        className: 'border-destructive/40 text-destructive',
+        className:
+            'border-destructive-foreground/40 text-destructive-foreground',
     },
 };
 

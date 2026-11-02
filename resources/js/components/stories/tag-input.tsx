@@ -65,7 +65,7 @@ export default function TagInput({
                                 onClick={() =>
                                     onChange(value.filter((t) => t !== tag))
                                 }
-                                className="rounded-sm hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                className="rounded-sm hover:text-destructive-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             >
                                 <X className="size-3" />
                             </button>

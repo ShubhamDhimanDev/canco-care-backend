@@ -29,21 +29,12 @@ export default function EditStory({
             <Head title={`Edit: ${story.title}`} />
 
             <div className="mx-auto w-full max-w-6xl space-y-8 p-4">
-                <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="text-xl font-semibold tracking-tight">
-                            Edit story
-                        </h2>
-                        <StoryStateBadge state={story.state} />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                        Last saved {formatDateTime(story.updated_at)}
-                    </p>
-                </div>
-
                 <StoryForm
                     form={StoryController.update.form(story.id)}
                     story={story}
+                    title="Edit story"
+                    badge={<StoryStateBadge state={story.state} />}
+                    subtitle={`Last saved ${formatDateTime(story.updated_at)}`}
                     submitLabel="Save changes"
                     allTags={allTags}
                     siteUrl={siteUrl}

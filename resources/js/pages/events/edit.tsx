@@ -27,21 +27,12 @@ export default function EditEvent({
             <Head title={`Edit: ${event.title}`} />
 
             <div className="mx-auto w-full max-w-6xl space-y-8 p-4">
-                <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <h2 className="text-xl font-semibold tracking-tight">
-                            Edit event
-                        </h2>
-                        <EventStateBadge state={event.state} />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                        Last saved {formatDateTime(event.updated_at)}
-                    </p>
-                </div>
-
                 <EventForm
                     form={EventController.update.form(event.id)}
                     event={event}
+                    title="Edit event"
+                    badge={<EventStateBadge state={event.state} />}
+                    subtitle={`Last saved ${formatDateTime(event.updated_at)}`}
                     submitLabel="Save changes"
                     timezones={timezones}
                 />

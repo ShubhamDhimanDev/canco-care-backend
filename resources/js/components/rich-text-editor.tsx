@@ -1,3 +1,4 @@
+import Image from '@tiptap/extension-image';
 import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
 import type { Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -5,19 +6,23 @@ import {
     Bold,
     Heading2,
     Heading3,
+    ImagePlus,
     Italic,
     Link2,
     List,
     ListOrdered,
     Quote,
     Redo2,
+    Trash2,
     Undo2,
     Unlink,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import MediaPicker from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useInputNotifier } from '@/hooks/use-form-dirty';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -29,6 +34,10 @@ type Props = {
     defaultValue: string;
     invalid?: boolean;
     describedBy?: string;
+    /** Offer "insert image" (library pictures only). On by default. */
+    allowImages?: boolean;
+    /** Height of the writing area, as a Tailwind class. */
+    minHeightClass?: string;
 };
 
 /** Turns what an editor typed into an address the server's sanitiser will accept. */
@@ -74,7 +83,18 @@ function ToolbarButton({
     );
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Divider() {
+    return <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />;
+}
+
+function Toolbar({
+    editor,
+    allowImages,
+}: {
+    editor: Editor;
+    allowImages: boolean;
+}) {
+    const [pickerOpen, setPickerOpen] = useState(false);
     const [linkOpen, setLinkOpen] = useState(false);
     const [linkValue, setLinkValue] = useState('');
     const [linkError, setLinkError] = useState('');
@@ -90,6 +110,8 @@ function Toolbar({ editor }: { editor: Editor }) {
             numbers: editor.isActive('orderedList'),
             quote: editor.isActive('blockquote'),
             link: editor.isActive('link'),
+            image: editor.isActive('image'),
+            imageAlt: String(editor.getAttributes('image').alt ?? ''),
             canUndo: editor.can().undo(),
             canRedo: editor.can().redo(),
         }),
@@ -130,7 +152,8 @@ function Toolbar({ editor }: { editor: Editor }) {
     };
 
     return (
-        <div className="border-b">
+        // Sticks under the form's action bar while a long text scrolls.
+        <div className="sticky top-[4.75rem] z-20 rounded-t-md border-b bg-background">
             <div
                 role="toolbar"
                 aria-label="Text formatting"
@@ -150,7 +173,7 @@ function Toolbar({ editor }: { editor: Editor }) {
                 >
                     <Italic />
                 </ToolbarButton>
-                <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+                <Divider />
                 <ToolbarButton
                     label="Heading"
                     active={state.h2}
@@ -169,7 +192,7 @@ function Toolbar({ editor }: { editor: Editor }) {
                 >
                     <Heading3 />
                 </ToolbarButton>
-                <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+                <Divider />
                 <ToolbarButton
                     label="Bulleted list"
                     active={state.bullets}
@@ -197,7 +220,7 @@ function Toolbar({ editor }: { editor: Editor }) {
                 >
                     <Quote />
                 </ToolbarButton>
-                <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+                <Divider />
                 <ToolbarButton
                     label="Link"
                     active={state.link || linkOpen}
@@ -219,7 +242,19 @@ function Toolbar({ editor }: { editor: Editor }) {
                 >
                     <Unlink />
                 </ToolbarButton>
-                <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+                {allowImages && (
+                    <>
+                        <Divider />
+                        <ToolbarButton
+                            label="Insert image from the library"
+                            active={state.image}
+                            onClick={() => setPickerOpen(true)}
+                        >
+                            <ImagePlus />
+                        </ToolbarButton>
+                    </>
+                )}
+                <Divider />
                 <ToolbarButton
                     label="Undo"
                     disabled={!state.canUndo}
@@ -236,8 +271,52 @@ function Toolbar({ editor }: { editor: Editor }) {
                 </ToolbarButton>
             </div>
 
-            {linkOpen && (
+            {state.image && (
                 // Not a <form>: this editor already lives inside the page's form.
+                <div className="flex flex-wrap items-center gap-2 border-t bg-muted/40 p-2">
+                    <span className="text-xs font-medium">Selected image</span>
+                    <Input
+                        type="text"
+                        aria-label="Image description (alt text)"
+                        placeholder="Describe the picture for people who cannot see it"
+                        value={state.imageAlt}
+                        maxLength={200}
+                        className="min-w-48 flex-1 bg-background"
+                        onChange={(event) =>
+                            editor
+                                .chain()
+                                .updateAttributes('image', {
+                                    alt: event.target.value,
+                                })
+                                .run()
+                        }
+                        onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                                event.preventDefault();
+                                editor.chain().focus().run();
+                            }
+                        }}
+                    />
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                            editor.chain().focus().deleteSelection().run()
+                        }
+                    >
+                        <Trash2 /> Remove image
+                    </Button>
+                    {state.imageAlt.trim() === '' && (
+                        <p className="w-full text-xs text-amber-700 dark:text-amber-400">
+                            Add a description: screen readers and search engines
+                            rely on it.
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {linkOpen && (
                 <div className="flex flex-wrap items-center gap-2 border-t p-2">
                     <Input
                         autoFocus
@@ -285,13 +364,38 @@ function Toolbar({ editor }: { editor: Editor }) {
                     )}
                 </div>
             )}
+
+            {allowImages && (
+                <MediaPicker
+                    open={pickerOpen}
+                    onOpenChange={setPickerOpen}
+                    title="Insert an image"
+                    confirmLabel="Insert image"
+                    withAlt
+                    onSelect={(item, alt) => {
+                        editor
+                            .chain()
+                            .focus()
+                            .setImage({
+                                src: item.url,
+                                alt: alt || item.alt || '',
+                                width: item.width,
+                                height: item.height,
+                            })
+                            .run();
+                    }}
+                />
+            )}
         </div>
     );
 }
 
+const wordCount = (text: string): number =>
+    text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+
 /**
- * Rich-text field for story text. It only offers formatting the server's sanitiser
- * keeps (headings, bold, italic, lists, quotes, links) and submits HTML through a
+ * Rich-text field for story and event text. It only offers formatting the server's sanitiser
+ * keeps (headings, bold, italic, lists, quotes, links, library images) and submits HTML through a
  * hidden input, so it works inside an ordinary Inertia <Form>.
  */
 export default function RichTextEditor({
@@ -301,8 +405,14 @@ export default function RichTextEditor({
     defaultValue,
     invalid = false,
     describedBy,
+    allowImages = true,
+    minHeightClass = 'min-h-64',
 }: Props) {
     const [html, setHtml] = useState(defaultValue);
+    const [words, setWords] = useState(() =>
+        wordCount(defaultValue.replace(/<[^>]*>/g, ' ')),
+    );
+    const hiddenInput = useInputNotifier(html);
 
     const editor = useEditor({
         extensions: [
@@ -320,6 +430,8 @@ export default function RichTextEditor({
                     HTMLAttributes: { rel: 'noopener noreferrer' },
                 },
             }),
+            // Pictures come from the library only: pasted base64 data is ignored.
+            ...(allowImages ? [Image.configure({ allowBase64: false })] : []),
         ],
         content: defaultValue,
         editorProps: {
@@ -329,23 +441,35 @@ export default function RichTextEditor({
                 'aria-multiline': 'true',
                 'aria-label': label,
                 ...(describedBy ? { 'aria-describedby': describedBy } : {}),
-                class: 'rich-text min-h-64 px-3 py-2 outline-none',
+                class: cn('rich-text px-3 py-2 outline-none', minHeightClass),
             },
         },
-        onUpdate: ({ editor }) =>
-            setHtml(editor.isEmpty ? '' : editor.getHTML()),
+        onUpdate: ({ editor }) => {
+            setHtml(editor.isEmpty ? '' : editor.getHTML());
+            setWords(wordCount(editor.getText()));
+        },
     });
 
     return (
         <div
             className={cn(
                 'rounded-md border bg-transparent shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50',
-                invalid && 'border-destructive',
+                invalid && 'border-destructive-foreground',
             )}
         >
-            {editor && <Toolbar editor={editor} />}
+            {editor && <Toolbar editor={editor} allowImages={allowImages} />}
             <EditorContent editor={editor} />
-            <input type="hidden" name={name} value={html} />
+            <div className="flex justify-between gap-3 border-t px-3 py-1.5 text-xs text-muted-foreground">
+                <span>
+                    {words} {words === 1 ? 'word' : 'words'}
+                </span>
+                <span>
+                    {words === 0
+                        ? 'Nothing written yet'
+                        : `About ${Math.max(1, Math.round(words / 200))} min read`}
+                </span>
+            </div>
+            <input ref={hiddenInput} type="hidden" name={name} value={html} />
         </div>
     );
 }

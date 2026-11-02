@@ -1,7 +1,6 @@
 import { Head } from '@inertiajs/react';
 import EventController from '@/actions/App/Http/Controllers/Admin/EventController';
 import EventForm from '@/components/events/event-form';
-import Heading from '@/components/heading';
 
 export default function CreateEvent({ timezones }: { timezones: string[] }) {
     return (
@@ -9,12 +8,10 @@ export default function CreateEvent({ timezones }: { timezones: string[] }) {
             <Head title="New event" />
 
             <div className="mx-auto w-full max-w-6xl p-4">
-                <Heading
-                    title="New event"
-                    description="Save it as a draft first, or publish it right away."
-                />
                 <EventForm
                     form={EventController.store.form()}
+                    title="New event"
+                    subtitle="Save it as a draft first, or publish it right away."
                     submitLabel="Create event"
                     timezones={timezones}
                 />

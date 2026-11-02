@@ -1,12 +1,10 @@
-import { Form, Head } from '@inertiajs/react';
-import { Pencil, Plus } from 'lucide-react';
+import { Form, Head, router } from '@inertiajs/react';
+import { Mail, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import InquiryTypeController from '@/actions/App/Http/Controllers/Admin/InquiryTypeController';
 import CheckField from '@/components/check-field';
 import FormField from '@/components/form-field';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -26,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Switch } from '@/components/ui/switch';
 import {
     Table,
     TableBody,
@@ -133,11 +132,42 @@ function TypeDialog({ type }: { type?: InquiryTypeRow }) {
     );
 }
 
+/** Shows or hides a topic in the contact form without opening the edit dialog. */
+function VisibilityToggle({ type }: { type: InquiryTypeRow }) {
+    return (
+        <label className="inline-flex cursor-pointer items-center gap-2">
+            <Switch
+                checked={type.is_active}
+                aria-label={`Show “${type.name}” in the contact form`}
+                onChange={(event) =>
+                    router.patch(
+                        InquiryTypeController.update.url(type.id),
+                        {
+                            name: type.name,
+                            email: type.email,
+                            sort_order: type.sort_order,
+                            is_active: event.target.checked ? 1 : 0,
+                        },
+                        { preserveScroll: true },
+                    )
+                }
+            />
+            <span className="text-xs text-muted-foreground">
+                {type.is_active ? 'Shown' : 'Hidden'}
+            </span>
+        </label>
+    );
+}
+
 function DeleteDialog({ type }: { type: InquiryTypeRow }) {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-destructive">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive-foreground"
+                >
                     Delete
                     <span className="sr-only"> {type.name}</span>
                 </Button>
@@ -237,11 +267,24 @@ export default function InquiryTypesIndex({ types, fallbackEmails }: Props) {
             <Head title="Inquiry topics" />
 
             <div className="mx-auto w-full max-w-4xl space-y-6 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                    <Heading
-                        title="Inquiry topics"
-                        description="The dropdown on the contact form. Each topic has the email address its inquiries are sent to."
-                    />
+                <div className="sticky top-2 z-30 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-background/90 px-4 py-2.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/75">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <span
+                            className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"
+                            aria-hidden="true"
+                        >
+                            <Mail className="size-4.5" />
+                        </span>
+                        <div className="min-w-0">
+                            <h2 className="text-base leading-tight font-semibold">
+                                Inquiry topics
+                            </h2>
+                            <p className="truncate text-xs text-muted-foreground">
+                                The contact form’s dropdown. Each topic has the
+                                address its inquiries are sent to.
+                            </p>
+                        </div>
+                    </div>
                     <TypeDialog />
                 </div>
 
@@ -277,15 +320,7 @@ export default function InquiryTypesIndex({ types, fallbackEmails }: Props) {
                                             {type.email}
                                         </TableCell>
                                         <TableCell>
-                                            {type.is_active ? (
-                                                <Badge className="border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                                    Shown
-                                                </Badge>
-                                            ) : (
-                                                <Badge variant="outline">
-                                                    Hidden
-                                                </Badge>
-                                            )}
+                                            <VisibilityToggle type={type} />
                                         </TableCell>
                                         <TableCell className="text-right tabular-nums">
                                             {type.inquiries_count}

@@ -1,8 +1,9 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 type Props = {
     name: string;
@@ -22,6 +23,12 @@ type Props = {
     step?: number | string;
     autoComplete?: string;
     inputMode?: 'text' | 'numeric' | 'decimal' | 'email' | 'tel' | 'url';
+    /** Shows "12 / 80" beside the label (needs `maxLength`). */
+    counter?: boolean;
+    /** Called with the text on every edit (for live previews); the field itself stays uncontrolled. */
+    onValueChange?: (value: string) => void;
+    /** Short text shown before the input, such as "/events/". */
+    prefix?: string;
 };
 
 /**
@@ -44,8 +51,16 @@ export default function FormField({
     step,
     autoComplete,
     inputMode,
+    counter = false,
+    onValueChange,
+    prefix,
 }: Props) {
     const id = useId();
+    const [length, setLength] = useState(String(defaultValue ?? '').length);
+    const track = (value: string) => {
+        setLength(value.length);
+        onValueChange?.(value);
+    };
     const describedBy =
         [help ? `${id}-help` : null, error ? `${id}-error` : null]
             .filter(Boolean)
@@ -53,7 +68,21 @@ export default function FormField({
 
     return (
         <div className="grid gap-2">
-            <Label htmlFor={id}>{label}</Label>
+            <div className="flex items-center justify-between gap-3">
+                <Label htmlFor={id}>{label}</Label>
+                {counter && maxLength && (
+                    <span
+                        className={cn(
+                            'text-xs tabular-nums',
+                            length >= maxLength
+                                ? 'text-amber-700 dark:text-amber-400'
+                                : 'text-muted-foreground',
+                        )}
+                    >
+                        {length} / {maxLength}
+                    </span>
+                )}
+            </div>
             {rows ? (
                 <Textarea
                     id={id}
@@ -63,9 +92,29 @@ export default function FormField({
                     maxLength={maxLength}
                     required={required}
                     rows={rows}
+                    onChange={(event) => track(event.target.value)}
                     aria-invalid={error ? true : undefined}
                     aria-describedby={describedBy}
                 />
+            ) : prefix ? (
+                <div className="flex items-center rounded-md border shadow-xs focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50">
+                    <span className="pl-3 text-sm text-muted-foreground select-none">
+                        {prefix}
+                    </span>
+                    <Input
+                        id={id}
+                        name={name}
+                        type={type}
+                        defaultValue={defaultValue ?? ''}
+                        placeholder={placeholder}
+                        maxLength={maxLength}
+                        required={required}
+                        onChange={(event) => track(event.target.value)}
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={describedBy}
+                        className="border-0 pl-0.5 shadow-none focus-visible:ring-0"
+                    />
+                </div>
             ) : (
                 <Input
                     id={id}
@@ -80,6 +129,7 @@ export default function FormField({
                     step={step}
                     autoComplete={autoComplete}
                     inputMode={inputMode}
+                    onChange={(event) => track(event.target.value)}
                     aria-invalid={error ? true : undefined}
                     aria-describedby={describedBy}
                 />

@@ -8,3 +8,4 @@ export type * from './home';
 export type * from './events';
 export type * from './inquiries';
 export type * from './site';
+export type * from './dashboard';

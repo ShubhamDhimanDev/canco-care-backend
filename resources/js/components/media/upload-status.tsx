@@ -23,7 +23,7 @@ export default function UploadStatus({ entries }: { entries: UploadEntry[] }) {
                         <CheckCircle2 className="mt-0.5 size-4 text-emerald-600" />
                     )}
                     {entry.status === 'error' && (
-                        <AlertCircle className="mt-0.5 size-4 text-destructive" />
+                        <AlertCircle className="mt-0.5 size-4 text-destructive-foreground" />
                     )}
                     <span>
                         <span className="font-medium">{entry.name}</span>
@@ -31,7 +31,7 @@ export default function UploadStatus({ entries }: { entries: UploadEntry[] }) {
                             ' — converting to WebP…'}
                         {entry.status === 'done' && ' — uploaded'}
                         {entry.status === 'error' && (
-                            <span className="text-destructive">
+                            <span className="text-destructive-foreground">
                                 {' '}
                                 — {entry.message}
                             </span>

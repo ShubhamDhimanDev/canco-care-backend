@@ -1,6 +1,5 @@
 import { Head } from '@inertiajs/react';
 import StoryController from '@/actions/App/Http/Controllers/Admin/StoryController';
-import Heading from '@/components/heading';
 import StoryForm from '@/components/stories/story-form';
 
 export default function CreateStory({
@@ -15,12 +14,10 @@ export default function CreateStory({
             <Head title="New story" />
 
             <div className="mx-auto w-full max-w-6xl p-4">
-                <Heading
-                    title="New story"
-                    description="Save it as a draft first, or publish it right away."
-                />
                 <StoryForm
                     form={StoryController.store.form()}
+                    title="New story"
+                    subtitle="Save it as a draft first, or publish it right away."
                     submitLabel="Create story"
                     allTags={allTags}
                     siteUrl={siteUrl}

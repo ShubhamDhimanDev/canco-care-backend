@@ -7,6 +7,7 @@ use App\Http\Resources\V1\EventCardResource;
 use App\Http\Resources\V1\EventResource;
 use App\Models\Event;
 use App\Models\SlugRedirect;
+use App\Support\Like;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -19,7 +20,8 @@ class EventController extends Controller
 
     /**
      * Public events. `scope=upcoming` (default) soonest first, `past` and `all` newest first.
-     * `featured_first=1` pins featured events to the top of the upcoming list.
+     * `featured_first=1` pins featured events to the top of the upcoming list. `search` matches the title,
+     * summary, venue or city.
      */
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -28,7 +30,10 @@ class EventController extends Controller
 
         $scope = in_array($request->query('scope'), ['upcoming', 'past', 'all'], true) ? $request->query('scope') : 'upcoming';
 
+        $search = Like::text($request->query('search'));
+
         $query = Event::visible()
+            ->when($search !== null, fn ($q) => Like::anyColumn($q, ['title', 'summary', 'location_name', 'city'], $search))
             ->when($scope === 'upcoming', fn ($q) => $q->upcoming())
             ->when($scope === 'past', fn ($q) => $q->past());
 

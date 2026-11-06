@@ -217,6 +217,19 @@ describe('public API visibility', function () {
         $this->getJson('/api/v1/events')->assertOk()->assertJsonPath('data.*.slug', ['soon', 'later']);
     });
 
+    test('search matches title, summary, venue or city, within the scope', function () {
+        Event::factory()->create(['slug' => 'gala', 'title' => 'Winter gala', 'starts_at' => now()->addDays(3), 'ends_at' => null]);
+        Event::factory()->create(['slug' => 'run', 'title' => 'Fun run', 'city' => 'Kamloops', 'starts_at' => now()->addDays(4), 'ends_at' => null]);
+        Event::factory()->create(['slug' => 'hall', 'title' => 'Picnic', 'location_name' => 'Winter Hall', 'starts_at' => now()->addDays(5), 'ends_at' => null]);
+        Event::factory()->past()->create(['slug' => 'old-gala', 'title' => 'Winter gala 2025', 'starts_at' => now()->subDays(60), 'ends_at' => null]);
+
+        $this->getJson('/api/v1/events?search=winter')->assertJsonPath('data.*.slug', ['gala', 'hall']);
+        $this->getJson('/api/v1/events?search=kamloops')->assertJsonPath('data.*.slug', ['run']);
+        $this->getJson('/api/v1/events?search=winter&scope=past')->assertJsonPath('data.*.slug', ['old-gala']);
+        $this->getJson('/api/v1/events?search=winter&scope=all')->assertJsonCount(3, 'data');
+        $this->getJson('/api/v1/events?search=%25')->assertJsonCount(0, 'data');
+    });
+
     test('scope=past lists finished events newest first', function () {
         Event::factory()->past()->create(['slug' => 'old', 'starts_at' => now()->subDays(40), 'ends_at' => null]);
         Event::factory()->past()->create(['slug' => 'recent', 'starts_at' => now()->subDays(5), 'ends_at' => null]);

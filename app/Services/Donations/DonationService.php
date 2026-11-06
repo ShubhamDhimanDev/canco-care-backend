@@ -151,7 +151,7 @@ class DonationService
 
         // The receipt email, and the website's "impact" figure if it is set to follow donations.
         SendDonationReceipt::dispatch($donation->id)->afterCommit();
-        RevalidateFrontend::dispatch(['settings'])->afterCommit();
+        RevalidateFrontend::fire(['settings']);
 
         return $donation;
     }

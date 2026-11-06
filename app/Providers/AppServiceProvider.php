@@ -8,17 +8,22 @@ use App\Http\Middleware\EnsureFrontendApiKey;
 use App\Models\Event;
 use App\Models\Story;
 use App\Models\User;
+use App\Services\Audit;
 use App\Services\Bots\NullBotVerifier;
 use App\Services\Bots\TurnstileVerifier;
 use App\Services\Donations\DonationGateways;
 use App\Services\Settings;
 use App\Support\ClientIp;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event as Events;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -51,6 +56,33 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureAuthorization();
         $this->configureApi();
+        $this->configureAudit();
+    }
+
+    /**
+     * Sign-ins and sign-outs go in the audit trail too (model changes are logged by the `Audited` trait).
+     */
+    protected function configureAudit(): void
+    {
+        $this->app->singleton(Audit::class);
+
+        Events::listen(Login::class, fn (Login $event) => $event->user instanceof User
+            ? app(Audit::class)->record('login', 'auth', $event->user->id, $event->user->auditLabel(), null, null, $event->user)
+            : null);
+
+        Events::listen(Logout::class, fn (Logout $event) => $event->user instanceof User
+            ? app(Audit::class)->record('logout', 'auth', $event->user->id, $event->user->auditLabel(), null, null, $event->user)
+            : null);
+
+        // The address that was tried (never the password), so repeated guessing is visible.
+        Events::listen(Failed::class, fn (Failed $event) => app(Audit::class)->record(
+            'login_failed',
+            'auth',
+            null,
+            is_string($event->credentials['email'] ?? null) ? $event->credentials['email'] : null,
+            null,
+            ['email' => $event->credentials['email'] ?? null],
+        ));
     }
 
     /**
@@ -86,12 +118,16 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Gate for everything only administrators may touch (users, settings, pages, donations).
-     * Use it as `can:admin` middleware or `Gate::authorize('admin')`.
+     * The `admin` gate is for what only a super administrator may touch (users and roles). Everything else is
+     * a named permission (PermissionCatalog). Use `can:admin` / `can:stories.view` as route middleware.
      */
     protected function configureAuthorization(): void
     {
         Gate::define('admin', fn (User $user): bool => $user->isAdmin());
+
+        // A super administrator passes every check (permissions, policies, abilities). For everyone
+        // else `null` defers to the normal checks: Spatie's permission hook, then the policies.
+        Gate::before(fn (User $user): ?bool => $user->isAdmin() ? true : null);
     }
 
     /**

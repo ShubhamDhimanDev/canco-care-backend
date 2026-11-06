@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Database\Factories\InquiryTypeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -28,7 +29,7 @@ use Illuminate\Support\Carbon;
 class InquiryType extends Model
 {
     /** @use HasFactory<InquiryTypeFactory> */
-    use HasFactory;
+    use Audited, HasFactory;
 
     /**
      * @return array<string, string>
@@ -55,5 +56,15 @@ class InquiryType extends Model
     protected function active(Builder $query): void
     {
         $query->where('is_active', true)->orderBy('sort_order')->orderBy('name');
+    }
+
+    public function auditType(): string
+    {
+        return 'inquiry_type';
+    }
+
+    public function auditLabel(): string
+    {
+        return $this->name;
     }
 }

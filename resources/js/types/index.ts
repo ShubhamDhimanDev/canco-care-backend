@@ -9,3 +9,5 @@ export type * from './events';
 export type * from './inquiries';
 export type * from './site';
 export type * from './dashboard';
+export type * from './access';
+export type * from './audit';

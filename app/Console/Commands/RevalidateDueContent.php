@@ -38,7 +38,7 @@ class RevalidateDueContent extends Command
             array_values(array_map(fn (string $slug): string => "event:{$slug}", $events->all())),
         );
 
-        RevalidateFrontend::dispatch($tags);
+        RevalidateFrontend::fire($tags);
 
         $this->components->info("Revalidating {$stories->count()} story(ies) and {$events->count()} event(s) that just went live.");
 

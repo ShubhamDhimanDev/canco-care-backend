@@ -24,17 +24,17 @@ class StoryObserver
             $tags[] = 'story:'.$story->getOriginal('slug');
         }
 
-        RevalidateFrontend::dispatch($tags)->afterCommit();
+        RevalidateFrontend::fire($tags);
     }
 
     public function deleted(Story $story): void
     {
-        RevalidateFrontend::dispatch($this->tags($story))->afterCommit();
+        RevalidateFrontend::fire($this->tags($story));
     }
 
     public function restored(Story $story): void
     {
-        RevalidateFrontend::dispatch($this->tags($story))->afterCommit();
+        RevalidateFrontend::fire($this->tags($story));
     }
 
     /**

@@ -53,7 +53,7 @@ class StoryController extends Controller
                 'draft' => $this->drafts(Story::query())->count(),
                 'trashed' => Story::onlyTrashed()->count(),
             ],
-            'can' => ['forceDelete' => (bool) $request->user()?->isAdmin()],
+            'can' => ['forceDelete' => $request->user()?->can('stories.force-delete') === true],
         ]);
     }
 

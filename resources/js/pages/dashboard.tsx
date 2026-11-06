@@ -35,6 +35,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { useHydrated } from '@/hooks/use-hydrated';
+import { usePermissions } from '@/hooks/use-permissions';
 import { formatEventStart, formatRelative } from '@/lib/date';
 import { formatCents } from '@/lib/money';
 import { cn } from '@/lib/utils';
@@ -280,6 +281,7 @@ export default function Dashboard({
     system,
 }: DashboardData) {
     const { auth } = usePage().props;
+    const { can } = usePermissions();
     const hydrated = useHydrated();
     // Clock- and locale-dependent text waits for the browser, so it cannot mismatch the server HTML.
     const ago = (iso: string | null) => (hydrated ? formatRelative(iso) : '');
@@ -300,7 +302,7 @@ export default function Dashboard({
         href: React.ComponentProps<typeof Link>['href'];
     }[] = [];
 
-    if (inquiries.new > 0) {
+    if (can('inquiries.view') && inquiries.new > 0) {
         attention.push({
             text: `${inquiries.new} new ${inquiries.new === 1 ? 'inquiry is' : 'inquiries are'} waiting for a reply`,
             href: InquiryController.index({ query: { view: 'new' } }),
@@ -355,26 +357,34 @@ export default function Dashboard({
                         </h1>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <Button asChild>
-                            <Link href={StoryController.create()}>
-                                <Plus /> New story
-                            </Link>
-                        </Button>
-                        <Button asChild variant="secondary">
-                            <Link href={EventController.create()}>
-                                <Plus /> New event
-                            </Link>
-                        </Button>
-                        <Button asChild variant="outline">
-                            <Link href={HomePageController.edit()}>
-                                <LayoutPanelTop /> Edit home page
-                            </Link>
-                        </Button>
-                        <Button asChild variant="outline">
-                            <Link href={MediaController.index()}>
-                                <ImageIcon /> Media
-                            </Link>
-                        </Button>
+                        {can('stories.create') && (
+                            <Button asChild>
+                                <Link href={StoryController.create()}>
+                                    <Plus /> New story
+                                </Link>
+                            </Button>
+                        )}
+                        {can('events.create') && (
+                            <Button asChild variant="secondary">
+                                <Link href={EventController.create()}>
+                                    <Plus /> New event
+                                </Link>
+                            </Button>
+                        )}
+                        {can('home-page.update') && (
+                            <Button asChild variant="outline">
+                                <Link href={HomePageController.edit()}>
+                                    <LayoutPanelTop /> Edit home page
+                                </Link>
+                            </Button>
+                        )}
+                        {can('media.view') && (
+                            <Button asChild variant="outline">
+                                <Link href={MediaController.index()}>
+                                    <ImageIcon /> Media
+                                </Link>
+                            </Button>
+                        )}
                     </div>
                 </div>
 

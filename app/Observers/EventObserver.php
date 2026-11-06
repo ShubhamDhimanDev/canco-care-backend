@@ -19,17 +19,17 @@ class EventObserver
             $tags[] = 'event:'.$event->getOriginal('slug');
         }
 
-        RevalidateFrontend::dispatch($tags)->afterCommit();
+        RevalidateFrontend::fire($tags);
     }
 
     public function deleted(Event $event): void
     {
-        RevalidateFrontend::dispatch($this->tags($event))->afterCommit();
+        RevalidateFrontend::fire($this->tags($event));
     }
 
     public function restored(Event $event): void
     {
-        RevalidateFrontend::dispatch($this->tags($event))->afterCommit();
+        RevalidateFrontend::fire($this->tags($event));
     }
 
     /**

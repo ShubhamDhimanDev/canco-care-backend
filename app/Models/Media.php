@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +28,8 @@ use Illuminate\Support\Facades\Storage;
 #[Fillable(['path', 'thumb_path', 'original_name', 'mime', 'size_bytes', 'width', 'height', 'alt', 'uploaded_by'])]
 class Media extends Model
 {
+    use Audited;
+
     protected $table = 'media';
 
     /**
@@ -77,5 +80,15 @@ class Media extends Model
             'width' => $this->width,
             'height' => $this->height,
         ];
+    }
+
+    public function auditType(): string
+    {
+        return 'media';
+    }
+
+    public function auditLabel(): string
+    {
+        return $this->original_name;
     }
 }

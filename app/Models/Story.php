@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StoryStatus;
+use App\Models\Concerns\Audited;
 use App\Observers\StoryObserver;
 use Database\Factories\StoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -69,7 +70,7 @@ use Illuminate\Support\Facades\Storage;
 class Story extends Model
 {
     /** @use HasFactory<StoryFactory> */
-    use HasFactory, SoftDeletes;
+    use Audited, HasFactory, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -190,5 +191,15 @@ class Story extends Model
     {
         $query->where('status', StoryStatus::Published->value)
             ->where('published_at', '<=', now());
+    }
+
+    public function auditType(): string
+    {
+        return 'story';
+    }
+
+    public function auditLabel(): string
+    {
+        return $this->title;
     }
 }

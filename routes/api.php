@@ -18,8 +18,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->name('api.v1.')->middleware('throttle:public-api')->group(function () {
     Route::get('health', HealthController::class)->name('health');
 
-    // Cacheable reads: browsers/CDNs may reuse for 60 s and serve stale for 5 min while revalidating.
-    Route::middleware('cache.headers:public;max_age=60;stale_while_revalidate=300;etag')->group(function () {
+    // Reads carry an ETag but may NOT be reused without asking again (max-age=0, must-revalidate): the website
+    // keeps its own tagged cache, and an edit in the admin has to show up at once, so no browser, CDN or proxy
+    // in between is allowed to hold an old copy. An unchanged answer costs only a 304.
+    Route::middleware('cache.headers:public;max_age=0;must_revalidate;etag')->group(function () {
         Route::get('home', [HomeController::class, 'show'])->name('home.show');
         Route::get('events', [EventController::class, 'index'])->name('events.index');
         Route::get('events/{slug}', [EventController::class, 'show'])

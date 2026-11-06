@@ -4,6 +4,8 @@ namespace Database\Factories;
 
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Services\PermissionSync;
+use App\Support\PermissionCatalog;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -36,6 +38,28 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
         ];
+    }
+
+    /**
+     * Every default (editor) user gets the "Editor" role, as an account made in the admin would.
+     * Use `withoutRoles()` for a sub-admin who has been given nothing yet.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if ($user->role === UserRole::Editor) {
+                (new PermissionSync)->run();
+                $user->assignRole(PermissionCatalog::EDITOR_ROLE);
+            }
+        });
+    }
+
+    /**
+     * A sub-admin with no role at all (can sign in and see the dashboard, nothing else).
+     */
+    public function withoutRoles(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->syncRoles([]));
     }
 
     /**

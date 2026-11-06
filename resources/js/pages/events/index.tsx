@@ -23,6 +23,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { usePermissions } from '@/hooks/use-permissions';
 import { cn } from '@/lib/utils';
 import type { EventCounts, EventFilter, EventRow, Paginated } from '@/types';
 
@@ -97,6 +98,7 @@ function DeleteForeverButton({ event }: { event: EventRow }) {
 }
 
 export default function EventsIndex({ events, filters, counts, can }: Props) {
+    const perms = usePermissions();
     const tabHref = (status: EventFilter) =>
         EventController.index({
             query: {
@@ -115,11 +117,13 @@ export default function EventsIndex({ events, filters, counts, can }: Props) {
                         title="Events"
                         description="Fundraisers and community events shown on the Upcoming Events page."
                     />
-                    <Button asChild>
-                        <Link href={EventController.create()}>
-                            <Plus /> New event
-                        </Link>
-                    </Button>
+                    {perms.can('events.create') && (
+                        <Button asChild>
+                            <Link href={EventController.create()}>
+                                <Plus /> New event
+                            </Link>
+                        </Button>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -184,13 +188,15 @@ export default function EventsIndex({ events, filters, counts, can }: Props) {
                                 ? `No events match “${filters.search}”.`
                                 : EMPTY_TEXT[filters.status]}
                         </p>
-                        {filters.status === 'all' && !filters.search && (
-                            <Button asChild className="mt-4">
-                                <Link href={EventController.create()}>
-                                    <Plus /> Add the first event
-                                </Link>
-                            </Button>
-                        )}
+                        {filters.status === 'all' &&
+                            !filters.search &&
+                            perms.can('events.create') && (
+                                <Button asChild className="mt-4">
+                                    <Link href={EventController.create()}>
+                                        <Plus /> Add the first event
+                                    </Link>
+                                </Button>
+                            )}
                     </div>
                 ) : (
                     <div className="rounded-lg border">

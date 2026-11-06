@@ -44,8 +44,8 @@ class DashboardController extends Controller
                 'impact_text' => (new ImpactFigure($settings))->amountText(),
                 'donations_open' => $settings->bool('donations.enabled') && DonationGateways::available(),
             ],
-            // Money is administrators-only, the same as the Donations screens.
-            'donations' => $isAdmin ? $this->donations() : null,
+            // Money follows the same permission as the Donations screens.
+            'donations' => $request->user()?->can('donations.view') ? $this->donations() : null,
             'system' => $isAdmin ? $this->system() : null,
         ]);
     }

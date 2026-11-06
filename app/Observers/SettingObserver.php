@@ -26,6 +26,6 @@ class SettingObserver
     {
         app(Settings::class)->flush();
 
-        RevalidateFrontend::dispatch(['settings'])->afterCommit();
+        RevalidateFrontend::fire(['settings']);
     }
 }

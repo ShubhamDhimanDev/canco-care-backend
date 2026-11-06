@@ -23,6 +23,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { usePermissions } from '@/hooks/use-permissions';
 import { formatDateTime } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import type { Paginated, StoryCounts, StoryFilter, StoryRow } from '@/types';
@@ -89,6 +90,7 @@ function DeleteForeverButton({ story }: { story: StoryRow }) {
 }
 
 export default function StoriesIndex({ stories, filters, counts, can }: Props) {
+    const perms = usePermissions();
     const tabHref = (status: StoryFilter) =>
         StoryController.index({
             query: {
@@ -107,11 +109,13 @@ export default function StoriesIndex({ stories, filters, counts, can }: Props) {
                         title="Stories"
                         description="News and updates shown on the Canco Cares website."
                     />
-                    <Button asChild>
-                        <Link href={StoryController.create()}>
-                            <Plus /> New story
-                        </Link>
-                    </Button>
+                    {perms.can('stories.create') && (
+                        <Button asChild>
+                            <Link href={StoryController.create()}>
+                                <Plus /> New story
+                            </Link>
+                        </Button>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -176,13 +180,15 @@ export default function StoriesIndex({ stories, filters, counts, can }: Props) {
                                 ? `No stories match “${filters.search}”.`
                                 : EMPTY_TEXT[filters.status]}
                         </p>
-                        {filters.status === 'all' && !filters.search && (
-                            <Button asChild className="mt-4">
-                                <Link href={StoryController.create()}>
-                                    <Plus /> Write the first story
-                                </Link>
-                            </Button>
-                        )}
+                        {filters.status === 'all' &&
+                            !filters.search &&
+                            perms.can('stories.create') && (
+                                <Button asChild className="mt-4">
+                                    <Link href={StoryController.create()}>
+                                        <Plus /> Write the first story
+                                    </Link>
+                                </Button>
+                            )}
                     </div>
                 ) : (
                     <div className="rounded-lg border">

@@ -54,7 +54,7 @@ class EventController extends Controller
                 'draft' => $this->drafts(Event::query())->count(),
                 'trashed' => Event::onlyTrashed()->count(),
             ],
-            'can' => ['forceDelete' => (bool) $request->user()?->isAdmin()],
+            'can' => ['forceDelete' => $request->user()?->can('events.force-delete') === true],
         ]);
     }
 

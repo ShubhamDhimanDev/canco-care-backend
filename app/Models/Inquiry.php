@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\InquiryStatus;
+use App\Models\Concerns\Audited;
 use Database\Factories\InquiryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -43,7 +44,7 @@ use Illuminate\Support\Carbon;
 class Inquiry extends Model
 {
     /** @use HasFactory<InquiryFactory> */
-    use HasFactory, SoftDeletes;
+    use Audited, HasFactory, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -89,5 +90,15 @@ class Inquiry extends Model
         return strlen($digits) === 10
             ? sprintf('(%s) %s-%s', substr($digits, 0, 3), substr($digits, 3, 3), substr($digits, 6))
             : $this->phone;
+    }
+
+    public function auditType(): string
+    {
+        return 'inquiry';
+    }
+
+    public function auditLabel(): string
+    {
+        return $this->reference.' — '.$this->first_name.' '.$this->last_name;
     }
 }

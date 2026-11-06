@@ -189,7 +189,7 @@ describe('HTTP behaviour', function () {
         $this->getJson('/api/v1/stories')->assertOk();
     });
 
-    test('responses are cacheable with stale-while-revalidate and an ETag', function () {
+    test('responses carry an ETag but must always be revalidated, so edits show at once', function () {
         Story::factory()->create(['slug' => 'cached']);
 
         foreach (['/api/v1/stories', '/api/v1/stories/cached'] as $url) {
@@ -197,8 +197,9 @@ describe('HTTP behaviour', function () {
 
             expect($response->headers->get('Cache-Control'))
                 ->toContain('public')
-                ->toContain('max-age=60')
-                ->toContain('stale-while-revalidate=300')
+                ->toContain('max-age=0')
+                ->toContain('must-revalidate')
+                ->not->toContain('stale-while-revalidate')
                 ->and($response->headers->get('ETag'))->not->toBeNull();
         }
     });

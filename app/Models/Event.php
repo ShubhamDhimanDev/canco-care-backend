@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\EventStatus;
+use App\Models\Concerns\Audited;
 use App\Observers\EventObserver;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -64,7 +65,7 @@ use Illuminate\Support\Facades\Storage;
 class Event extends Model
 {
     /** @use HasFactory<EventFactory> */
-    use HasFactory, SoftDeletes;
+    use Audited, HasFactory, SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -169,5 +170,15 @@ class Event extends Model
     protected function past(Builder $query): void
     {
         $query->whereRaw('COALESCE(ends_at, starts_at) < ?', [now()->utc()->toDateTimeString()]);
+    }
+
+    public function auditType(): string
+    {
+        return 'event';
+    }
+
+    public function auditLabel(): string
+    {
+        return $this->title;
     }
 }

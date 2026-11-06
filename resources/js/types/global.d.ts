@@ -13,6 +13,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             sidebarOpen: boolean;
             isAdmin: boolean;
+            /** Every permission the signed-in person holds (all of them for a super administrator). */
+            permissions: string[];
             unreadInquiries: number;
             [key: string]: unknown;
         };

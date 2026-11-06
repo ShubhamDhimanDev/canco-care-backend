@@ -1,7 +1,9 @@
 <?php
 
 use App\Jobs\RevalidateFrontend;
+use App\Models\Media;
 use App\Models\Story;
+use App\Models\User;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
@@ -95,6 +97,44 @@ describe('job', function () {
         'no url' => [['services.frontend.url' => null]],
         'no secret' => [['services.frontend.revalidate_secret' => '']],
     ]);
+
+    test('the first attempt is made at once, without a queue worker, and a failure falls back to the queue', function () {
+        Queue::fake();
+        Http::fake(['site.example.test/*' => Http::response('down', 503)]);
+
+        (new RevalidateFrontend(['stories'], immediate: true))->handle();
+
+        // It did not throw (the editor's request must not fail) and it queued a retry for the worker.
+        Queue::assertPushed(RevalidateFrontend::class, fn (RevalidateFrontend $job) => $job->tags === ['stories'] && ! $job->immediate);
+    });
+
+    test('an unreachable website also falls back to the queue', function () {
+        Queue::fake();
+        Http::fake(fn () => throw new ConnectionException('refused'));
+
+        (new RevalidateFrontend(['events'], immediate: true))->handle();
+
+        Queue::assertPushed(RevalidateFrontend::class, fn (RevalidateFrontend $job) => $job->tags === ['events'] && ! $job->immediate);
+    });
+
+    test('fire() contacts the website before the request ends, with no queue involved', function () {
+        Http::fake(['site.example.test/*' => Http::response([])]);
+
+        RevalidateFrontend::fire(['stories', 'events']);
+
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => $request['tags'] === ['stories', 'events']);
+    });
+
+    test('changing a picture description refreshes everything that may show it', function () {
+        Http::fake(['site.example.test/*' => Http::response([])]);
+        $admin = User::factory()->admin()->create();
+        $media = Media::create(['path' => 'media/a.webp', 'original_name' => 'a.webp', 'mime' => 'image/webp', 'size_bytes' => 10, 'width' => 10, 'height' => 10]);
+
+        $this->actingAs($admin)->patch("/media/{$media->id}", ['alt' => 'A new description'])->assertRedirect();
+
+        Http::assertSent(fn ($request) => $request['tags'] === ['stories', 'events', 'settings']);
+    });
 
     test('saving a story reaches the website end to end', function () {
         Http::fake(['site.example.test/*' => Http::response([])]);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UploadMediaRequest;
+use App\Jobs\RevalidateFrontend;
 use App\Models\Media;
 use App\Services\ImageConversionException;
 use App\Services\MediaService;
@@ -50,7 +51,7 @@ class MediaController extends Controller
      */
     public function library(Request $request): JsonResponse
     {
-        Gate::authorize('viewAny', Media::class);
+        Gate::authorize('pick', Media::class);
 
         $page = $this->query(trim((string) $request->query('search', '')))->paginate(self::PER_PAGE);
 
@@ -62,7 +63,7 @@ class MediaController extends Controller
 
     public function store(UploadMediaRequest $request, MediaService $service): JsonResponse
     {
-        Gate::authorize('create', Media::class);
+        Gate::authorize('upload', Media::class);
 
         try {
             $media = $service->store($request->file('file'), $request->user(), $request->input('alt'));
@@ -80,6 +81,9 @@ class MediaController extends Controller
         $data = $request->validate(['alt' => ['nullable', 'string', 'max:200']]);
 
         $media->update(['alt' => filled($data['alt'] ?? null) ? $data['alt'] : null]);
+
+        // The description may be shown wherever this picture is used.
+        RevalidateFrontend::fire(['stories', 'events', 'settings']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('Image description saved.')]);
 

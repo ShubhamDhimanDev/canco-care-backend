@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Needs the scheduler cron entry (`php artisan schedule:run` every minute) — see docs/plan/11-deployment.md.
 Schedule::command('content:revalidate-due')->everyMinute()->withoutOverlapping();
+
+// Keeps the audit trail to AUDIT_RETENTION_DAYS (default 365).
+Schedule::command('audit:prune')->dailyAt('03:30')->withoutOverlapping();

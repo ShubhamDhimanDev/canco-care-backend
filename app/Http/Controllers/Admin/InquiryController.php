@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inquiry;
 use App\Models\InquiryType;
 use App\Models\User;
+use App\Services\Audit;
 use App\Support\CsvExport;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -134,10 +135,12 @@ class InquiryController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
-        Gate::authorize('viewAny', Inquiry::class);
+        Gate::authorize('inquiries.export');
 
         [$view, $type, $search] = $this->filters($request);
         $query = $this->filtered(Inquiry::query(), $view, $type, $search)->orderByDesc('created_at');
+
+        app(Audit::class)->record('exported', 'inquiry', null, 'Inquiries CSV', null, ['filters' => array_filter($request->query()), 'rows' => (clone $query)->count()]);
 
         return CsvExport::download(
             'inquiries-'.now()->format('Y-m-d').'.csv',

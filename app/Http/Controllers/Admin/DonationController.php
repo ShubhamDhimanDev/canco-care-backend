@@ -6,6 +6,7 @@ use App\Enums\DonationStatus;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendDonationReceipt;
 use App\Models\Donation;
+use App\Services\Audit;
 use App\Services\Donations\ReceiptData;
 use App\Services\Settings;
 use App\Support\CsvExport;
@@ -108,6 +109,8 @@ class DonationController extends Controller
 
         SendDonationReceipt::dispatch($donation->id);
 
+        app(Audit::class)->record('resent_receipt', 'donation', $donation->id, $donation->reference, null, ['sent_to' => $donation->donor_email, 'receipt_number' => $donation->receipt_number]);
+
         Inertia::flash('toast', ['type' => 'success', 'message' => __('The receipt is on its way to :email.', ['email' => $donation->donor_email])]);
 
         return back();
@@ -117,6 +120,8 @@ class DonationController extends Controller
     {
         [$view, $search, $from, $to, $mode] = $this->filters($request);
         $query = $this->filtered(Donation::query(), $view, $search, $from, $to, $mode)->orderByDesc('created_at');
+
+        app(Audit::class)->record('exported', 'donation', null, 'Donations CSV', null, ['filters' => array_filter($request->query()), 'rows' => (clone $query)->count()]);
 
         return CsvExport::download(
             'donations-'.now()->format('Y-m-d').'.csv',

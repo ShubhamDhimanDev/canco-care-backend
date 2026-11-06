@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DonationController;
 use App\Http\Controllers\Admin\EventController;
@@ -7,8 +8,10 @@ use App\Http\Controllers\Admin\HomePageController;
 use App\Http\Controllers\Admin\InquiryController;
 use App\Http\Controllers\Admin\InquiryTypeController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\StoryController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 // The admin has no public landing page: send visitors to the dashboard (which asks guests to log in).
@@ -34,18 +37,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('inquiries/{inquiry}', [InquiryController::class, 'update'])->name('inquiries.update');
     Route::delete('inquiries/{inquiry}', [InquiryController::class, 'destroy'])->name('inquiries.destroy');
 
-    // Administrator-only settings.
-    Route::middleware('can:admin')->group(function () {
+    // Settings and donations. Each is its own permission (see PermissionCatalog); super administrators pass them all.
+    Route::middleware('can:site-settings.manage')->group(function () {
         Route::get('settings/site', [SiteSettingsController::class, 'edit'])->name('site-settings.edit');
         Route::put('settings/site', [SiteSettingsController::class, 'update'])->name('site-settings.update');
+    });
 
-        // Donations: administrators only. `export` is declared before the {donation} routes.
+    // Donors' details. `export` is declared before the {donation} routes.
+    Route::middleware('can:donations.view')->group(function () {
         Route::get('donations', [DonationController::class, 'index'])->name('donations.index');
-        Route::get('donations/export', [DonationController::class, 'export'])->name('donations.export');
+        Route::get('donations/export', [DonationController::class, 'export'])->middleware('can:donations.export')->name('donations.export');
         Route::get('donations/{donation}', [DonationController::class, 'show'])->name('donations.show');
         Route::get('donations/{donation}/receipt', [DonationController::class, 'receipt'])->name('donations.receipt');
-        Route::post('donations/{donation}/resend', [DonationController::class, 'resend'])->name('donations.resend');
+        Route::post('donations/{donation}/resend', [DonationController::class, 'resend'])->middleware('can:donations.resend')->name('donations.resend');
+    });
 
+    // Sub-admins and their roles: super administrators only (whoever can edit roles could grant themselves everything).
+    Route::middleware('can:admin')->group(function () {
+        Route::resource('users', UserController::class)->except('show');
+        Route::resource('roles', RoleController::class)->except('show');
+
+        // The audit trail is read-only: no route edits or deletes an entry.
+        Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('audit-logs/{audit_log}', [AuditLogController::class, 'show'])->name('audit-logs.show');
+    });
+
+    Route::middleware('can:inquiry-topics.manage')->group(function () {
         Route::get('settings/inquiries', [InquiryTypeController::class, 'index'])->name('inquiry-types.index');
         Route::post('settings/inquiries/types', [InquiryTypeController::class, 'store'])->name('inquiry-types.store');
         Route::patch('settings/inquiries/types/{inquiry_type}', [InquiryTypeController::class, 'update'])->name('inquiry-types.update');
@@ -54,8 +71,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Home page copy and pictures.
-    Route::get('home-page', [HomePageController::class, 'edit'])->name('home-page.edit');
-    Route::put('home-page', [HomePageController::class, 'update'])->name('home-page.update');
+    Route::middleware('can:home-page.update')->group(function () {
+        Route::get('home-page', [HomePageController::class, 'edit'])->name('home-page.edit');
+        Route::put('home-page', [HomePageController::class, 'update'])->name('home-page.update');
+    });
 
     // Media library. `library` is the JSON feed for the picker dialog (declared before the {media} routes).
     Route::get('media', [MediaController::class, 'index'])->name('media.index');

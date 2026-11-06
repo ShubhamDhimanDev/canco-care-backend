@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Inquiry;
+use App\Support\PermissionCatalog;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -43,9 +44,28 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'isAdmin' => (bool) $request->user()?->isAdmin(),
+            // Every permission this person holds (all of them for a super administrator); the sidebar and
+            // buttons use it to hide what the server would refuse anyway.
+            'permissions' => fn (): array => $this->permissionsFor($request),
             // Shown as a badge on "Inquiries"; evaluated lazily so guests and partial reloads skip the query.
             'unreadInquiries' => fn (): int => $request->user() ? Inquiry::query()->where('status', 'new')->count() : 0,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function permissionsFor(Request $request): array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return [];
+        }
+
+        return $user->isAdmin()
+            ? PermissionCatalog::all()
+            : $user->getAllPermissions()->map(fn ($permission): string => (string) $permission->name)->values()->all();
     }
 }

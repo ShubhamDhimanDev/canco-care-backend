@@ -19,7 +19,16 @@ class TagService
      */
     public function sync(Story $story, array $names): void
     {
+        $before = $story->tags()->pluck('name')->sort()->values()->all();
+
         $story->tags()->sync($this->idsFor($names));
+
+        // Tags are not columns of the story, so the model log cannot see them.
+        $after = $story->tags()->pluck('name')->sort()->values()->all();
+
+        if ($before !== $after) {
+            app(Audit::class)->record('updated', 'story', $story->id, $story->title, $before === [] ? null : ['tags' => $before], ['tags' => $after]);
+        }
     }
 
     /**

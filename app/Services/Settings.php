@@ -87,6 +87,8 @@ class Settings
             }
         }
 
+        $before = array_intersect_key($this->all(), $values);
+
         // One revalidation for the whole save, not one per row.
         Setting::withoutEvents(function () use ($values): void {
             foreach ($values as $key => $value) {
@@ -99,7 +101,16 @@ class Settings
 
         $this->flush();
 
-        RevalidateFrontend::dispatch(['settings'])->afterCommit();
+        // Rows are written without model events (one refresh per save), so the audit entry is made here:
+        // one entry per save, listing only the settings whose value changed.
+        [$old, $new] = app(Audit::class)->diff($before, $values);
+
+        if ($new !== []) {
+            $group = SettingDefaults::groupOf((string) array_key_first($new));
+            app(Audit::class)->record('updated', 'setting', $group, $group === 'home' ? 'Home page' : 'Site settings: '.$group, $old, $new);
+        }
+
+        RevalidateFrontend::fire(['settings']);
     }
 
     public function set(string $key, mixed $value): void

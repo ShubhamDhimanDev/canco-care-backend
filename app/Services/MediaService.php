@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\RevalidateFrontend;
 use App\Models\Media;
 use App\Models\User;
 use GdImage;
@@ -80,6 +81,9 @@ class MediaService
 
         $media->update($stored);
         app(MediaUsage::class)->repoint($oldPath, $media);
+
+        // Stories/events were pointed at the new file with plain queries (no model events), so tell the website.
+        RevalidateFrontend::fire(['stories', 'events', 'settings']);
 
         $disk->delete(array_values(array_filter([$oldPath, $oldThumb !== $oldPath ? $oldThumb : null])));
 

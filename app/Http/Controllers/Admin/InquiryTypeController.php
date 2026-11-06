@@ -119,7 +119,7 @@ class InquiryTypeController extends Controller
     private function done(string $message): RedirectResponse
     {
         // The website caches the topics for its dropdown under the "settings" tag.
-        RevalidateFrontend::dispatch(['settings'])->afterCommit();
+        RevalidateFrontend::fire(['settings']);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
 

@@ -14,6 +14,27 @@ function publishedAt(string $iso): array
 }
 
 describe('GET /api/v1/stories', function () {
+    test('search matches the title, excerpt or summary, and only public stories', function () {
+        Story::factory()->create(['slug' => 'a', 'title' => 'Winter coat drive', 'excerpt' => 'x', ...publishedAt('2026-01-01 10:00:00')]);
+        Story::factory()->create(['slug' => 'b', 'title' => 'Other', 'excerpt' => 'Warm COAT for kids', ...publishedAt('2026-01-02 10:00:00')]);
+        Story::factory()->create(['slug' => 'c', 'title' => 'Other', 'excerpt' => 'x', 'summary' => 'About a coat', ...publishedAt('2026-01-03 10:00:00')]);
+        Story::factory()->create(['slug' => 'd', 'title' => 'Unrelated', 'excerpt' => 'x', ...publishedAt('2026-01-04 10:00:00')]);
+        Story::factory()->draft()->create(['slug' => 'e', 'title' => 'Draft coat']);
+
+        $this->getJson('/api/v1/stories?search=coat')->assertOk()->assertJsonPath('data.*.slug', ['c', 'b', 'a']);
+        $this->getJson('/api/v1/stories?search='.urlencode('  COAT drive '))->assertJsonPath('data.*.slug', ['a']);
+        $this->getJson('/api/v1/stories?search=coat+drive')->assertJsonPath('data.*.slug', ['a']);
+        $this->getJson('/api/v1/stories?search=')->assertJsonCount(4, 'data');
+    });
+
+    test('search treats % and _ as plain characters and combines with a tag', function () {
+        Story::factory()->create(['slug' => 'pct', 'title' => '100% fun', ...publishedAt('2026-01-01 10:00:00')]);
+        Story::factory()->create(['slug' => 'other', 'title' => 'Plain', ...publishedAt('2026-01-02 10:00:00')]);
+
+        $this->getJson('/api/v1/stories?search='.urlencode('%'))->assertJsonPath('data.*.slug', ['pct']);
+        $this->getJson('/api/v1/stories?search='.urlencode('_'))->assertJsonPath('data.*.slug', []);
+    });
+
     test('returns public stories newest first, breaking ties by id', function () {
         $old = Story::factory()->create(['slug' => 'old', ...publishedAt('2026-01-01 10:00:00')]);
         $tieA = Story::factory()->create(['slug' => 'tie-a', ...publishedAt('2026-02-01 10:00:00')]);

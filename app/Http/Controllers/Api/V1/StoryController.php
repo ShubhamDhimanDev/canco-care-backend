@@ -7,6 +7,7 @@ use App\Http\Resources\V1\StoryCardResource;
 use App\Http\Resources\V1\StoryResource;
 use App\Models\SlugRedirect;
 use App\Models\Story;
+use App\Support\Like;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -27,10 +28,12 @@ class StoryController extends Controller
         $perPage = $requested === false ? self::DEFAULT_PER_PAGE : min(max($requested, 1), self::MAX_PER_PAGE);
 
         $tag = $request->query('tag');
+        $search = Like::text($request->query('search'));
 
         return StoryCardResource::collection(
             Story::published()
                 ->with('tags')
+                ->when($search !== null, fn ($query) => Like::anyColumn($query, ['title', 'excerpt', 'summary'], $search))
                 ->when(is_string($tag) && $tag !== '', fn ($query) => $query->whereHas('tags', fn ($q) => $q->where('slug', $tag)))
                 // The home page's "Latest Stories": stories marked "feature on the home page" first.
                 ->when($request->boolean('featured_first'), fn ($query) => $query->orderByDesc('is_featured'))

@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureFrontendApiKey;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        // Every response (admin pages, API, /up): HSTS, CSP, X-Frame-Options, nosniff, Referrer-Policy, noindex.
+        $middleware->append(SecurityHeaders::class);
 
         $middleware->alias([
             'frontend.key' => EnsureFrontendApiKey::class,

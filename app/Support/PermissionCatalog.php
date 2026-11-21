@@ -51,6 +51,13 @@ final class PermissionCatalog
                     'home-page.update' => 'Edit the home page',
                 ],
             ],
+            'pages' => [
+                'label' => 'Other pages',
+                'description' => 'Who We Are, Our Impact, Partner With Us, Contact Us, Terms and Conditions and the Privacy Policy.',
+                'permissions' => [
+                    'pages.update' => 'Edit these pages',
+                ],
+            ],
             'media' => [
                 'label' => 'Media library',
                 'description' => 'Uploaded pictures. Anyone who edits stories, events or the home page can already pick and upload pictures from inside those screens.',
@@ -114,7 +121,7 @@ final class PermissionCatalog
         return [
             'stories.view', 'stories.create', 'stories.update', 'stories.delete',
             'events.view', 'events.create', 'events.update', 'events.delete',
-            'home-page.update',
+            'home-page.update', 'pages.update',
             'media.view', 'media.create', 'media.update', 'media.delete',
             'inquiries.view', 'inquiries.update', 'inquiries.delete', 'inquiries.export',
         ];

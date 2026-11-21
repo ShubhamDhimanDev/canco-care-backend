@@ -286,6 +286,7 @@ export default function SiteSettingsEdit({
                                         <FormField
                                             name="impact[blurb]"
                                             label="Paragraph above the number"
+                                            help="Type {amount} where the figure belongs (for example “having donated over {amount}”). The website replaces it with the number shown below, so the text and the number can never disagree. Avoid typing a dollar amount by hand."
                                             defaultValue={values.impact.blurb}
                                             rows={4}
                                             maxLength={1000}

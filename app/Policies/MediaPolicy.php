@@ -15,7 +15,7 @@ use App\Models\User;
 class MediaPolicy
 {
     private const EDITING = [
-        'stories.create', 'stories.update', 'events.create', 'events.update', 'home-page.update',
+        'stories.create', 'stories.update', 'events.create', 'events.update', 'home-page.update', 'pages.update',
     ];
 
     public function viewAny(User $user): bool

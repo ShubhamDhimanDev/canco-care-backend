@@ -157,6 +157,20 @@ describe('impact figure', function () {
         $this->getJson('/api/v1/settings')->assertOk()->assertJsonPath('data.impact.amount_text', 'Over $1 million')->assertJsonPath('data.impact.caption', 'AND COUNTING!');
     });
 
+    test('the {amount} token in the paragraph is replaced by the figure the counter shows', function () {
+        app(Settings::class)->setMany(['impact.mode' => 'custom', 'impact.amount_text' => '$90,000', 'impact.blurb' => 'We have donated over {amount} so far.']);
+
+        $this->getJson('/api/v1/settings')->assertOk()
+            ->assertJsonPath('data.impact.amount_text', '$90,000')
+            ->assertJsonPath('data.impact.blurb', 'We have donated over $90,000 so far.');
+    });
+
+    test('the default paragraph follows the counter instead of a typed-in number', function () {
+        app(Settings::class)->setMany(['impact.mode' => 'custom', 'impact.amount_text' => '$90,000']);
+
+        $this->getJson('/api/v1/settings')->assertJsonPath('data.impact.blurb', fn (string $blurb) => str_contains($blurb, 'over $90,000.') && ! str_contains($blurb, '{amount}'));
+    });
+
     test('actual mode is the starting amount plus real donations after refunds, and ignores tests, pending and failed', function () {
         app(Settings::class)->setMany(['impact.mode' => 'actual', 'impact.actual_offset_cents' => 8_000_000]);
 

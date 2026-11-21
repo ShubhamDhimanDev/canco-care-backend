@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Enums\EventStatus;
 use App\Models\Concerns\Audited;
 use App\Observers\EventObserver;
+use App\Support\ZoneConverter;
+use App\Support\ZoneLabel;
+use Carbon\CarbonImmutable;
 use Database\Factories\EventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
@@ -29,6 +32,8 @@ use Illuminate\Support\Facades\Storage;
  * @property int|null $image_height
  * @property Carbon $starts_at
  * @property Carbon|null $ends_at
+ * @property string|null $starts_local
+ * @property string|null $ends_local
  * @property string $timezone
  * @property bool $is_all_day
  * @property string|null $location_name
@@ -55,7 +60,7 @@ use Illuminate\Support\Facades\Storage;
 #[Fillable([
     'title', 'slug', 'summary', 'description',
     'image_path', 'image_alt', 'image_width', 'image_height',
-    'starts_at', 'ends_at', 'timezone', 'is_all_day',
+    'starts_at', 'ends_at', 'starts_local', 'ends_local', 'timezone', 'is_all_day',
     'location_name', 'address_line1', 'address_line2', 'city', 'province', 'postal_code',
     'online_url', 'registration_url', 'cost_note',
     'status', 'published_at', 'is_featured', 'show_in_donation_form',
@@ -66,6 +71,50 @@ class Event extends Model
 {
     /** @use HasFactory<EventFactory> */
     use Audited, HasFactory, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        // Anything that sets only the UTC instants (factories, seeders, tinker) still gets its wall-clock times.
+        static::saving(function (Event $event): void {
+            if ($event->isDirty('starts_at') && ! $event->isDirty('starts_local')) {
+                $event->starts_local = self::wallClock($event->starts_at, $event->timezone);
+            }
+
+            if ($event->isDirty('ends_at') && ! $event->isDirty('ends_local')) {
+                $event->ends_local = $event->ends_at === null ? null : self::wallClock($event->ends_at, $event->timezone);
+            }
+        });
+    }
+
+    /**
+     * An instant as the wall-clock time in a zone, "2026-12-01 18:00:00".
+     */
+    public static function wallClock(\DateTimeInterface $instant, string $timezone): string
+    {
+        return ZoneConverter::toWallClock($instant, $timezone);
+    }
+
+    /**
+     * The organiser's start time as typed (no zone attached), falling back to the UTC instant converted
+     * with this server's rules for rows saved before `starts_local` existed.
+     */
+    public function startsLocal(): string
+    {
+        return $this->starts_local ?? self::wallClock($this->starts_at, $this->timezone);
+    }
+
+    public function endsLocal(): ?string
+    {
+        return $this->ends_local ?? ($this->ends_at === null ? null : self::wallClock($this->ends_at, $this->timezone));
+    }
+
+    /**
+     * "PT", "ET"… (see ZoneLabel).
+     */
+    public function timezoneLabel(): string
+    {
+        return ZoneLabel::for($this->timezone, $this->starts_at);
+    }
 
     /**
      * @return array<string, string>
@@ -104,7 +153,9 @@ class Event extends Model
      */
     public function hasEnded(): bool
     {
-        $end = $this->ends_at ?? ($this->is_all_day ? $this->starts_at->copy()->endOfDay() : $this->starts_at);
+        $end = $this->ends_at ?? ($this->is_all_day
+            ? ZoneConverter::toUtc(CarbonImmutable::parse($this->startsLocal(), 'UTC')->endOfDay()->format('Y-m-d H:i:s'), $this->timezone)
+            : $this->starts_at);
 
         return $end->isPast();
     }

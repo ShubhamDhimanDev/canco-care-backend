@@ -6,6 +6,7 @@ use App\Enums\EventStatus;
 use App\Models\Event;
 use App\Models\Media;
 use App\Models\User;
+use App\Support\ZoneConverter;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
@@ -60,6 +61,8 @@ class EventWriter
 
         $timezone = (string) $data['timezone'];
         $allDay = (bool) ($data['is_all_day'] ?? false);
+        $startsLocal = $this->wallClock((string) $data['starts_at_local'], $allDay, false);
+        $endsLocal = blank($data['ends_at_local'] ?? null) ? null : $this->wallClock((string) $data['ends_at_local'], $allDay, true);
 
         $event->fill([
             'title' => $data['title'],
@@ -68,8 +71,10 @@ class EventWriter
             'description' => $this->description($data['description'] ?? null),
             'timezone' => $timezone,
             'is_all_day' => $allDay,
-            'starts_at' => $this->toUtc((string) $data['starts_at_local'], $timezone, $allDay, false),
-            'ends_at' => blank($data['ends_at_local'] ?? null) ? null : $this->toUtc((string) $data['ends_at_local'], $timezone, $allDay, true),
+            'starts_local' => $startsLocal->format('Y-m-d H:i:s'),
+            'ends_local' => $endsLocal?->format('Y-m-d H:i:s'),
+            'starts_at' => self::toUtc($startsLocal, $timezone),
+            'ends_at' => $endsLocal === null ? null : self::toUtc($endsLocal, $timezone),
             'location_name' => $data['location_name'] ?? null,
             'address_line1' => $data['address_line1'] ?? null,
             'address_line2' => $data['address_line2'] ?? null,
@@ -135,17 +140,26 @@ class EventWriter
     }
 
     /**
-     * The organiser's wall-clock time in the event's zone, as a UTC instant. An all-day event starts
+     * The organiser's wall-clock time exactly as typed, with no zone attached. An all-day event starts
      * at the beginning of its day and (when it has an end) ends at the end of that day.
      */
-    private function toUtc(string $local, string $timezone, bool $allDay, bool $isEnd): CarbonImmutable
+    private function wallClock(string $local, bool $allDay, bool $isEnd): CarbonImmutable
     {
-        $time = CarbonImmutable::parse($local, $timezone);
+        $time = CarbonImmutable::parse($local, 'UTC');
 
         if ($allDay) {
             $time = $isEnd ? $time->endOfDay() : $time->startOfDay();
         }
 
-        return $time->utc();
+        return $time;
+    }
+
+    /**
+     * The UTC instant of a wall-clock time in a zone, using this server's time-zone rules.
+     * Also used by `events:resync-utc` after a tz database update.
+     */
+    public static function toUtc(CarbonImmutable $wallClock, string $timezone): CarbonImmutable
+    {
+        return ZoneConverter::toUtc($wallClock->format('Y-m-d H:i:s'), $timezone);
     }
 }

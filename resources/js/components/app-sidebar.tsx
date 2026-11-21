@@ -9,6 +9,7 @@ import {
     LayoutGrid,
     KeyRound,
     ListTree,
+    FileText,
     Newspaper,
     Settings,
     Users,
@@ -20,6 +21,7 @@ import HomePageController from '@/actions/App/Http/Controllers/Admin/HomePageCon
 import InquiryController from '@/actions/App/Http/Controllers/Admin/InquiryController';
 import InquiryTypeController from '@/actions/App/Http/Controllers/Admin/InquiryTypeController';
 import MediaController from '@/actions/App/Http/Controllers/Admin/MediaController';
+import PageController from '@/actions/App/Http/Controllers/Admin/PageController';
 import RoleController from '@/actions/App/Http/Controllers/Admin/RoleController';
 import SiteSettingsController from '@/actions/App/Http/Controllers/Admin/SiteSettingsController';
 import StoryController from '@/actions/App/Http/Controllers/Admin/StoryController';
@@ -80,6 +82,13 @@ export function AppSidebar() {
             icon: Home,
             matchPrefix: true,
             needs: ['home-page.update'],
+        },
+        {
+            title: 'Pages',
+            href: PageController.index(),
+            icon: FileText,
+            matchPrefix: true,
+            needs: ['pages.update'],
         },
         {
             title: 'Media',

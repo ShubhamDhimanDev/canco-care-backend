@@ -266,7 +266,7 @@ describe('public API visibility', function () {
         $data = $this->getJson('/api/v1/events/gala')->assertOk()->json('data');
 
         expect(array_keys($data))->toBe([
-            'slug', 'title', 'summary', 'image', 'starts_at', 'ends_at', 'timezone', 'is_all_day', 'location_name', 'city', 'province',
+            'slug', 'title', 'summary', 'image', 'starts_at', 'ends_at', 'starts_local', 'ends_local', 'timezone', 'timezone_label', 'is_all_day', 'location_name', 'city', 'province',
             'is_online', 'cost_note', 'status', 'is_featured',
             'description', 'address', 'online_url', 'registration_url', 'meta_title', 'meta_description', 'updated_at',
         ])->and($data['is_online'])->toBeTrue()->and($data['address']['line1'])->toBe('1 Main St');

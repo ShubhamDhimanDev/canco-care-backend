@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Event;
 use App\Models\Media;
 use App\Models\Story;
+use App\Support\PageCatalog;
 
 /**
  * Where a library file is used. A file that is in use cannot be deleted (the website would show a
@@ -40,6 +41,12 @@ class MediaUsage
 
         if ($this->homeUses($media->id)) {
             $usages[] = ['type' => 'Home page', 'label' => 'Home page content', 'url' => route('home-page.edit', [], false)];
+        }
+
+        foreach (PageCatalog::mediaIdsBySlug($this->settings) as $slug => $ids) {
+            if (in_array($media->id, $ids, true)) {
+                $usages[] = ['type' => 'Page', 'label' => PageCatalog::definition($slug)['label'], 'url' => route('pages.edit', $slug, false)];
+            }
         }
 
         return $usages;

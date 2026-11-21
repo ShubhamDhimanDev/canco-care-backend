@@ -19,7 +19,7 @@ final class SettingDefaults
             'impact.mode' => 'custom',
             'impact.amount_text' => '$80,000',
             'impact.caption' => 'AND COUNTING!',
-            'impact.blurb' => "Canco Cares is already impacting families and communities, with plans for rapid expansion. We're proud partners of the Make-A-Wish Foundation, having donated over \$80,000. Our mission is to give back to communities and families, creating a ripple of positive change in our society.",
+            'impact.blurb' => "Canco Cares is already impacting families and communities, with plans for rapid expansion. We're proud partners of the Make-A-Wish Foundation, having donated over {amount}. Our mission is to give back to communities and families, creating a ripple of positive change in our society.",
             'impact.actual_offset_cents' => 8_000_000,
 
             'social.facebook' => 'https://www.facebook.com/profile.php?id=61566542968163',
@@ -45,7 +45,24 @@ final class SettingDefaults
 
             // The home page document is merged over HomeContent::defaults().
             'home.content' => [],
-        ];
+        ] + self::pages();
+    }
+
+    /**
+     * One document per editable page (`pages.who-we-are`, `pages.privacy-policy`…), merged over
+     * PageCatalog::defaults().
+     *
+     * @return array<string, mixed>
+     */
+    private static function pages(): array
+    {
+        $keys = [];
+
+        foreach (PageCatalog::slugs() as $slug) {
+            $keys["pages.{$slug}"] = [];
+        }
+
+        return $keys;
     }
 
     public static function groupOf(string $key): string

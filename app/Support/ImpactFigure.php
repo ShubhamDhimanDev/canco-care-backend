@@ -38,6 +38,15 @@ final class ImpactFigure
     }
 
     /**
+     * The paragraph with its `{amount}` token replaced by the figure the counter shows, so the text and
+     * the number cannot disagree (docs/plan/14 #4).
+     */
+    public function blurb(): string
+    {
+        return str_replace('{amount}', $this->amountText(), $this->settings->string('impact.blurb'));
+    }
+
+    /**
      * Net real donations, in cents.
      */
     public function raisedCents(): int

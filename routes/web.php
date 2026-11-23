@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\HomePageController;
 use App\Http\Controllers\Admin\InquiryController;
 use App\Http\Controllers\Admin\InquiryTypeController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SiteSettingsController;
 use App\Http\Controllers\Admin\StoryController;
@@ -74,6 +75,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:home-page.update')->group(function () {
         Route::get('home-page', [HomePageController::class, 'edit'])->name('home-page.edit');
         Route::put('home-page', [HomePageController::class, 'update'])->name('home-page.update');
+    });
+
+    // The other pages of the website: Who We Are, Our Impact, Partner With Us, Contact Us, Terms, Privacy.
+    Route::middleware('can:pages.update')->group(function () {
+        Route::get('pages', [PageController::class, 'index'])->name('pages.index');
+        Route::get('pages/{slug}', [PageController::class, 'edit'])->where('slug', '[a-z0-9\-]+')->name('pages.edit');
+        Route::put('pages/{slug}', [PageController::class, 'update'])->where('slug', '[a-z0-9\-]+')->name('pages.update');
     });
 
     // Media library. `library` is the JSON feed for the picker dialog (declared before the {media} routes).

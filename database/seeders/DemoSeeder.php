@@ -19,6 +19,7 @@ use App\Services\HtmlSanitizer;
 use App\Services\MediaService;
 use App\Services\PermissionSync;
 use App\Services\TagService;
+use App\Support\ZoneConverter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -299,8 +300,8 @@ class DemoSeeder extends Seeder
                 'image_alt' => $media->alt,
                 'image_width' => $media->width,
                 'image_height' => $media->height,
-                'starts_at' => $starts->utc(),
-                'ends_at' => ($extras['is_all_day'] ?? false) ? null : $starts->addHours($hours)->utc(),
+                'starts_at' => ZoneConverter::toUtc($starts->format('Y-m-d H:i:s'), 'America/Vancouver'),
+                'ends_at' => ($extras['is_all_day'] ?? false) ? null : ZoneConverter::toUtc($starts->addHours($hours)->format('Y-m-d H:i:s'), 'America/Vancouver'),
                 'timezone' => 'America/Vancouver',
                 'is_all_day' => $extras['is_all_day'] ?? false,
                 'location_name' => $extras['location_name'] ?? null,

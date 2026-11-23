@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\HomeController;
 use App\Http\Controllers\Api\V1\InquiryController;
+use App\Http\Controllers\Api\V1\PageController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\StoryController;
 use App\Http\Controllers\Api\V1\TagController;
@@ -23,6 +24,9 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:public-api')->group(f
     // in between is allowed to hold an old copy. An unchanged answer costs only a 304.
     Route::middleware('cache.headers:public;max_age=0;must_revalidate;etag')->group(function () {
         Route::get('home', [HomeController::class, 'show'])->name('home.show');
+        Route::get('pages/{slug}', [PageController::class, 'show'])
+            ->where('slug', '[a-z0-9\-]+')
+            ->name('pages.show');
         Route::get('events', [EventController::class, 'index'])->name('events.index');
         Route::get('events/{slug}', [EventController::class, 'show'])
             ->where('slug', '[a-z0-9\-]+')

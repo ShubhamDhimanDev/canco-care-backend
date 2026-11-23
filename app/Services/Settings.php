@@ -106,8 +106,14 @@ class Settings
         [$old, $new] = app(Audit::class)->diff($before, $values);
 
         if ($new !== []) {
-            $group = SettingDefaults::groupOf((string) array_key_first($new));
-            app(Audit::class)->record('updated', 'setting', $group, $group === 'home' ? 'Home page' : 'Site settings: '.$group, $old, $new);
+            $first = (string) array_key_first($new);
+            $group = SettingDefaults::groupOf($first);
+            $label = match ($group) {
+                'home' => 'Home page',
+                'pages' => 'Page: '.substr($first, strlen('pages.')),
+                default => 'Site settings: '.$group,
+            };
+            app(Audit::class)->record('updated', 'setting', $group, $label, $old, $new);
         }
 
         RevalidateFrontend::fire(['settings']);

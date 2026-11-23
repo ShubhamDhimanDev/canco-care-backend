@@ -84,9 +84,9 @@ class EventController extends Controller
         Gate::authorize('update', $event);
 
         $siteUrl = rtrim((string) config('services.frontend.url'), '/');
-        $local = fn (?\DateTimeInterface $time, string $format): ?string => $time === null
+        $local = fn (?string $wallClock, string $format): ?string => $wallClock === null
             ? null
-            : CarbonImmutable::instance($time)->setTimezone($event->timezone)->format($format);
+            : CarbonImmutable::parse($wallClock, 'UTC')->format($format);
         $format = $event->is_all_day ? 'Y-m-d' : 'Y-m-d\TH:i';
 
         return Inertia::render('events/edit', [
@@ -99,8 +99,8 @@ class EventController extends Controller
                 'image' => $event->image(),
                 'timezone' => $event->timezone,
                 'is_all_day' => $event->is_all_day,
-                'starts_at_local' => $local($event->starts_at, $format),
-                'ends_at_local' => $local($event->ends_at, $format),
+                'starts_at_local' => $local($event->startsLocal(), $format),
+                'ends_at_local' => $local($event->endsLocal(), $format),
                 'location_name' => $event->location_name,
                 'address_line1' => $event->address_line1,
                 'address_line2' => $event->address_line2,

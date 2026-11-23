@@ -16,11 +16,13 @@ class SettingsController extends Controller
      */
     public function show(Settings $settings): JsonResponse
     {
+        $impact = new ImpactFigure($settings);
+
         return response()->json(['data' => [
             'impact' => [
-                'amount_text' => (new ImpactFigure($settings))->amountText(),
+                'amount_text' => $impact->amountText(),
                 'caption' => $settings->string('impact.caption'),
-                'blurb' => $settings->string('impact.blurb'),
+                'blurb' => $impact->blurb(),
             ],
             'social' => [
                 'facebook' => $settings->string('social.facebook'),

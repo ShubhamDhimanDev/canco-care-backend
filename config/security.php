@@ -10,8 +10,8 @@ return [
     'csp' => env('SECURITY_CSP', 'report-only'),
 
     /*
-    | Strict-Transport-Security, sent only on HTTPS requests when APP_ENV=production:
-    |   "short" (default) — 5 minutes, no subdomains: safe on staging, and on a domain that hosts other sites;
+    | Strict-Transport-Security, sent on every server (any APP_ENV except local) when the request or APP_URL is HTTPS:
+    |   "short" (default) — 5 minutes, no subdomains: right for staging, and for a domain that hosts other sites;
     |   "full"            — 1 year + includeSubDomains: production only, once HTTPS works everywhere;
     |   "off"             — send nothing (use when the web server adds the header itself).
     */

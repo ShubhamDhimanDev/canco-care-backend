@@ -48,17 +48,32 @@ test('enforce mode sends the blocking header and off sends none', function () {
     $this->get('/login')->assertHeaderMissing('Content-Security-Policy')->assertHeaderMissing('Content-Security-Policy-Report-Only');
 });
 
-test('HSTS is sent only over HTTPS in production, short unless set to full', function () {
-    $this->get('/login')->assertHeaderMissing('Strict-Transport-Security');
-
-    $this->app['env'] = 'production';
+test('HSTS is sent over HTTPS on any server (staging too), short unless set to full', function () {
+    config(['app.url' => 'http://localhost']);
     $this->get('http://localhost/login')->assertHeaderMissing('Strict-Transport-Security');
+    $this->get('https://localhost/login')->assertHeader('Strict-Transport-Security', 'max-age=300');
+
+    $this->app['env'] = 'staging';
     $this->get('https://localhost/login')->assertHeader('Strict-Transport-Security', 'max-age=300');
 
     config(['security.hsts' => 'full']);
     $this->get('https://localhost/login')->assertHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
     config(['security.hsts' => 'off']);
+    $this->get('https://localhost/login')->assertHeaderMissing('Strict-Transport-Security');
+});
+
+test('behind a proxy that hides HTTPS, an https APP_URL is enough', function () {
+    $this->app['env'] = 'staging';
+    config(['app.url' => 'https://api.example.test']);
+
+    $this->get('http://localhost/login')->assertHeader('Strict-Transport-Security', 'max-age=300');
+});
+
+test('a developer machine never gets HSTS', function () {
+    $this->app['env'] = 'local';
+    config(['app.url' => 'https://admin.test']);
+
     $this->get('https://localhost/login')->assertHeaderMissing('Strict-Transport-Security');
 });
 

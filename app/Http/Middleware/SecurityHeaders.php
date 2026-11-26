@@ -77,7 +77,12 @@ class SecurityHeaders
 
     private function hsts(Request $request): ?string
     {
-        if (! app()->environment('production') || ! $request->isSecure()) {
+        // Never on a developer machine. On a server, send it when the request or the app's address is HTTPS:
+        // behind a proxy (e.g. Nginx in front of Apache on HestiaCP) the request itself may look like plain
+        // HTTP, and browsers ignore the header on a real plain-HTTP response anyway.
+        $https = $request->isSecure() || str_starts_with((string) config('app.url'), 'https://');
+
+        if (app()->environment('local') || ! $https) {
             return null;
         }
 
